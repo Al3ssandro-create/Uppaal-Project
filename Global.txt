@@ -1,0 +1,21 @@
+/*** GLOBAL SYSTEM ***/
+
+
+const int N_STATION    = 3;
+const int STATION_VARIANCE = 1;
+const int STATION_MEAN = 2;
+
+/*** CHANNELS ***/
+urgent broadcast chan piece;     //syncronize the movement of the piece from the conveyor belt
+ 
+
+/*
+ *    Check whether the station is free
+ */
+bool isFree(int id){
+    if (Stations_availability[id]==1)
+        Stations_availability[id]=0;
+        return true;
+    else
+        return false;
+}
