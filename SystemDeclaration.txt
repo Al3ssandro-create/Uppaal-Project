@@ -1,4 +1,0 @@
-for (int i=0; i<N_STATION; i++){
-    station[i] = Station(i,STATION_MEAN, STATION_VARIANCE)
-}
-system station;
