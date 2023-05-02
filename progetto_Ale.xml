@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>/*** GLOBAL SYSTEM ***/
+
+
+const int N_STATION    = 3;
+const int STATION_VARIANCE = 1;
+const int STATION_MEAN = 2;
+
+/*** CHANNELS ***/
+urgent chan piece;
+urgent chan f;
+chan full;
+ 
+/*** GLOBAL TYPES ***/
+typedef int[0,N_STATION-1] stat_t;
+
+/*** GLOBAL VARIABLES***/
+bool station_free[N_STATION]={true,true,true};</declaration>
+	<template>
+		<name x="5" y="5">Tester</name>
+		<location id="id0" x="-646" y="-272">
+		</location>
+		<location id="id1" x="-510" y="-272">
+		</location>
+		<location id="id2" x="-510" y="-204">
+		</location>
+		<location id="id3" x="-646" y="-204">
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id0"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id3"/>
+			<label kind="synchronisation" x="-628" y="-221">f?</label>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="-510" y="-255">full!</label>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-628" y="-289">piece!</label>
+		</transition>
+	</template>
+	<template>
+		<name x="5" y="5">Station</name>
+		<parameter>const stat_t id, int processing_time</parameter>
+		<declaration>int e;
+clock x;
+bool free = true;
+/*
+ *    Check whether the station is free
+ */
+bool isFree(){
+    if (station_free[id]==true)
+        return true;
+     else
+        return false;
+}
+
+</declaration>
+		<location id="id4" x="-501" y="-34">
+			<name x="-578" y="-42">START</name>
+		</location>
+		<location id="id5" x="-229" y="-34">
+			<name x="-246" y="-76">Proc</name>
+			<label kind="invariant" x="-289" y="-17">x &lt;= processing_time</label>
+		</location>
+		<location id="id6" x="-17" y="-34">
+			<name x="-51" y="-68">Release</name>
+		</location>
+		<location id="id7" x="136" y="-34">
+			<name x="161" y="-42">END</name>
+		</location>
+		<init ref="id4"/>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-178" y="59">f!</label>
+			<label kind="assignment" x="-229" y="85">station_free[id]=true</label>
+			<nail x="-42" y="85"/>
+			<nail x="-263" y="85"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="34" y="-59">full?</label>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id6"/>
+			<label kind="guard" x="-187" y="-34">x == processing_time</label>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-340" y="-59">isFree()</label>
+			<label kind="synchronisation" x="-416" y="-59">piece?</label>
+			<label kind="assignment" x="-433" y="-34">x:=0 , station_free[id]=false</label>
+		</transition>
+	</template>
+	<system>Station1 = Station(0,10);
+Station2 = Station(1,10);
+Station3 = Station(2,10);
+tester   = Tester();
+system 
+    tester,Station1,Station2,Station3;</system>
+	<queries>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+	</queries>
+</nta>
