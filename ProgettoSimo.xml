@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+typedef struct {
+    int idStation;
+    int idFirstSensor;
+    int idSecondSensor;
+} QueueOfStation_t;
+
+bool valSensors[2] = {0,0};
+
+void setValSensors(int index, bool value){
+    valSensors[index-1]=value;
+}
+
+bool getValSensors(int index){
+    return valSensors[index-1];
+}
+
+chan NewPod1;
+chan FreePod1;
+chan NewPod2;
+broadcast chan FreePod2;
+chan StopStations;</declaration>
+	<template>
+		<name>Queue</name>
+		<parameter>const int id</parameter>
+		<declaration>int busy = 0;
+int stopped = 0;
+
+int getBusy() {
+    return busy;
+}
+
+void freeBusy(){
+    busy=0;
+}</declaration>
+		<location id="id0" x="-476" y="-144">
+			<name x="-569" y="-178">NotBusy</name>
+			<label kind="invariant" x="-569" y="-161">busy==0</label>
+		</location>
+		<location id="id1" x="-25" y="-136">
+			<name x="34" y="-170">Busy</name>
+			<label kind="invariant" x="34" y="-153">busy==1</label>
+		</location>
+		<location id="id2" x="-25" y="59">
+			<name x="0" y="51">StopStationBefore</name>
+		</location>
+		<location id="id3" x="-476" y="51">
+			<name x="-561" y="34">BackAgain</name>
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-561" y="-59">FreePod2!</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id3"/>
+			<label kind="synchronisation" x="-348" y="68">FreePod1!</label>
+			<label kind="assignment" x="-348" y="85">stopped=0,busy=0</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-25" y="144">stopped==0</label>
+			<label kind="synchronisation" x="-25" y="161">StopStations!</label>
+			<label kind="assignment" x="-25" y="178">stopped=1</label>
+			<nail x="-25" y="136"/>
+			<nail x="42" y="136"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="-17" y="-59">NewPod2?</label>
+			<nail x="-25" y="-51"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-314" y="-93">FreePod1!</label>
+			<label kind="assignment" x="-314" y="-76">busy=0</label>
+			<nail x="-263" y="-93"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-365" y="-255">NewPod1?</label>
+			<label kind="assignment" x="-365" y="-238">busy=1</label>
+			<nail x="-271" y="-195"/>
+		</transition>
+	</template>
+	<template>
+		<name>DummyStations</name>
+		<location id="id4" x="-501" y="-161">
+			<name x="-511" y="-195">Go</name>
+		</location>
+		<location id="id5" x="-246" y="-170">
+			<name x="-256" y="-204">Stop</name>
+		</location>
+		<init ref="id4"/>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-399" y="-102">FreePod2?</label>
+			<nail x="-365" y="-110"/>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="-408" y="-255">StopStations?</label>
+			<nail x="-365" y="-229"/>
+		</transition>
+	</template>
+	<template>
+		<name>FirstSensor</name>
+		<parameter>const int id</parameter>
+		<location id="id6" x="-544" y="-195">
+			<name x="-629" y="-229">NoPod</name>
+		</location>
+		<location id="id7" x="-280" y="-195">
+			<name x="-263" y="-229">YesPod</name>
+		</location>
+		<init ref="id6"/>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="-442" y="-153">FreePod1?</label>
+			<label kind="assignment" x="-442" y="-136">setValSensors(id,false)</label>
+			<nail x="-416" y="-161"/>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="-459" y="-297">NewPod1!</label>
+			<label kind="assignment" x="-459" y="-280">setValSensors(id,true)</label>
+			<nail x="-408" y="-229"/>
+		</transition>
+	</template>
+	<template>
+		<name>SecondSensor</name>
+		<parameter>const int id</parameter>
+		<location id="id8" x="-663" y="-238">
+			<name x="-731" y="-272">NoPod</name>
+		</location>
+		<location id="id9" x="-425" y="-238">
+			<name x="-416" y="-272">YesPod</name>
+		</location>
+		<init ref="id8"/>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-561" y="-195">FreePod2?</label>
+			<label kind="assignment" x="-561" y="-178">setValSensors(id,false)</label>
+			<nail x="-544" y="-195"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id9"/>
+			<label kind="synchronisation" x="-578" y="-331">NewPod2!</label>
+			<label kind="assignment" x="-578" y="-314">setValSensors(id,true)</label>
+			<nail x="-544" y="-289"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+qu = Queue(1);
+s1 = FirstSensor(1);
+s2 = SecondSensor(2);
+dm = DummyStations();
+
+// List one or more processes to be composed into a system.
+system qu, s1, s2, dm;</system>
+	<queries>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+	</queries>
+</nta>
