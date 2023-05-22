@@ -70,6 +70,8 @@ void initialize(){
     
     for(i=0;i&lt;N_STATION;i++){
        station_pod[i].idStation= i;
+        station_pod[i].idPod= -1;
+
     }
     for(i=0;i&lt;N_STATION;i++){
        station_pod[i].exit1=false;
@@ -108,6 +110,7 @@ void resetExit(int id){
     for(i=0;i&lt;N_STATION;i++){
         if(station_pod[i].idPod==id)
            station_pod[i].exit1=false;
+           station_pod[i].idPod=-1;
      }
 }
 
@@ -313,7 +316,7 @@ checkStation();
 		<name x="5" y="5">Station</name>
 		<parameter>const stat_t id</parameter>
 		<declaration>double mean,variance;
-int processing_time=3; //dobbiamo metterlo qua il processing time perchè mi ha dato un sacco di problemi
+int processing_time=2;// (real processing time is 4) //dobbiamo metterlo qua il processing time perchè mi ha dato un sacco di problemi
 bool free = true;
 clock stationClock;
 /*
@@ -336,38 +339,38 @@ void exit_station(int id){
 		</location>
 		<location id="id11" x="-229" y="-34">
 			<name x="-246" y="-76">Proc</name>
-			<label kind="invariant" x="-289" y="-17">stationClock &lt;= processing_time</label>
 		</location>
-		<location id="id12" x="-17" y="-34">
-			<name x="-51" y="-68">Release</name>
+		<location id="id12" x="119" y="-34">
+			<name x="144" y="-42">Release</name>
+			<label kind="invariant" x="51" y="0">stationClock &lt;= processing_time</label>
+			<committed/>
+		</location>
+		<location id="id13" x="-195" y="-331">
+			<label kind="invariant" x="-289" y="-374">stationClock &lt;= processing_time</label>
 		</location>
 		<init ref="id10"/>
 		<transition>
-			<source ref="id11"/>
-			<target ref="id11"/>
-			<label kind="guard" x="-314" y="119">stationClock &lt; processing_time</label>
-			<nail x="-102" y="102"/>
-			<nail x="-374" y="102"/>
+			<source ref="id13"/>
+			<target ref="id10"/>
+			<label kind="synchronisation" x="-483" y="-199">exitStation[id]!</label>
 		</transition>
 		<transition>
 			<source ref="id12"/>
-			<target ref="id10"/>
-			<label kind="synchronisation" x="-289" y="-187">exitStation[id]!</label>
-			<nail x="-119" y="-161"/>
-			<nail x="-348" y="-161"/>
+			<target ref="id13"/>
+			<label kind="assignment" x="8" y="-178">station_free[id]=true,exit_station(id)</label>
 		</transition>
 		<transition>
 			<source ref="id11"/>
 			<target ref="id12"/>
-			<label kind="guard" x="-179" y="-59">stationClock == processing_time</label>
-			<label kind="assignment" x="-195" y="-34">station_free[id]=true,exit_station(id)</label>
+			<label kind="guard" x="-211" y="-68">clockStation== proccesing_time</label>
+			<label kind="assignment" x="-127" y="-17">stationClock :=0</label>
 		</transition>
 		<transition>
 			<source ref="id10"/>
 			<target ref="id11"/>
 			<label kind="guard" x="-340" y="-59">isFree()</label>
 			<label kind="synchronisation" x="-459" y="-59">entryStation[id]?</label>
-			<label kind="assignment" x="-433" y="-34">stationClock:=0 , station_free[id]=false</label>
+			<label kind="assignment" x="-510" y="-17">stationClock:=0 , station_free[id]=false</label>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
