@@ -9,11 +9,12 @@ const int NUM_PODS = 3;
 const int N_STATION = 2;
 const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
-const int POS_POD[NUM_PODS]={0,2,4};
+const int POS_POD[NUM_PODS]={0,3,4};
 const int array_belt[LENGTH_PRINCIPAL_RAIL]={0,0,0,0,0,0,2,0,0,2,0,0,0};
 const int array_dirament[LENGTH_DIRAMENT]={0,0,0,0,0};
 const int index_station[N_STATION]={11,13};
 const int diramation=0;
+const int previousStations[N_STATION][N_STATION] = {{0,1},{1,0}};
 
 /*** CLOCK ***/
 clock beltClock;
@@ -33,11 +34,12 @@ int pos_Id_Station[NUM_PODS];
 // 0: rail, 1: station: 2: sempahore
 int pods_position[NUM_PODS];
 bool pods_blocked[NUM_PODS];
+bool stations_blocked[N_STATION];
 int station_position[N_STATION]={11,15};
 bool station_free[N_STATION]={true,true};
 bool valSensors[N_STATION][2];
 int posSensor1[N_STATION] = {10,14};
-int posSensor2[N_STATION] = {8,12};
+int posSensor2[N_STATION] = {9,12};
 //We define a new datastructure depending on how many diramament has the railstation
 
 typedef struct{
@@ -66,7 +68,7 @@ broadcast chan entryStation[N_STATION];
 broadcast chan exitStation[N_STATION];
 chan StopStations[N_STATION];
 
-chan priority move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1];
+//chan priority move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1];
 
 /*** GLOBAL UTILITY FUNCTIONS ************************************************/
 
@@ -205,6 +207,20 @@ int getIdStationQueue(int pos) {
         if(posSensor1[i]==pos) return i;
     }
     return -1;
+}
+
+void stopStationsGlobal(int id){
+    int i;
+    for(i=0; i&lt;N_STATION; i++){
+        if(previousStations[id][i]==1) stations_blocked[i] = true;
+    }
+}
+
+void resumeStationsGlobal(int id){
+    int i;
+    for(i=0; i&lt;N_STATION; i++){
+        if(previousStations[id][i]==1) stations_blocked[i] = false;
+    }
 }</declaration>
 	<template>
 		<name>Pod</name>
@@ -380,10 +396,12 @@ void setStationPosition(){
 
 </declaration>
 		<location id="id5" x="-518" y="-144">
+			<label kind="invariant" x="-528" y="-127">beltClock&lt;=0</label>
 		</location>
 		<location id="id6" x="-722" y="-144">
 		</location>
 		<location id="id7" x="-357" y="-144">
+			<label kind="invariant" x="-367" y="-127">beltClock&lt;=2</label>
 		</location>
 		<init ref="id6"/>
 		<transition>
@@ -394,7 +412,7 @@ void setStationPosition(){
 		<transition>
 			<source ref="id7"/>
 			<target ref="id5"/>
-			<label kind="guard" x="-561" y="-306">beltClock==2</label>
+			<label kind="guard" x="-561" y="-306">beltClock&gt;=2</label>
 			<label kind="synchronisation" x="-561" y="-289">move!</label>
 			<label kind="assignment" x="-561" y="-272">beltClock:=0</label>
 			<nail x="-442" y="-246"/>
@@ -447,10 +465,11 @@ void freeBlockedPods(){
 		</location>
 		<location id="id9" x="-229" y="-34">
 			<name x="-246" y="-76">Proc</name>
+			<label kind="invariant" x="-323" y="17">stationClock &lt; processing_time</label>
 		</location>
 		<location id="id10" x="229" y="-34">
 			<name x="195" y="-68">Release</name>
-			<label kind="invariant" x="219" y="-17">stationClock &lt;= processing_time</label>
+			<label kind="invariant" x="93" y="-17">stationClock &lt;= processing_time</label>
 		</location>
 		<location id="id11" x="-221" y="-348">
 			<label kind="invariant" x="-323" y="-391">stationClock &lt;= processing_time</label>
@@ -465,6 +484,7 @@ void freeBlockedPods(){
 		<transition>
 			<source ref="id10"/>
 			<target ref="id11"/>
+			<label kind="guard" x="-8" y="-246">stations_blocked[id]==false</label>
 			<label kind="assignment" x="-8" y="-221">station_free[id]=true,exit_station(id)</label>
 		</transition>
 		<transition>
@@ -536,8 +556,8 @@ void sendPodToStation(){
 		<transition>
 			<source ref="id14"/>
 			<target ref="id12"/>
-			<label kind="synchronisation" x="-552" y="-17">exitStation[id]!</label>
-			<label kind="assignment" x="-552" y="0">stopped=false,busy=false</label>
+			<label kind="synchronisation" x="-552" y="-17">exitStation[id]?</label>
+			<label kind="assignment" x="-731" y="0">stopped=false,busy=false, resumeStationsGlobal(id)</label>
 		</transition>
 		<transition>
 			<source ref="id15"/>
@@ -558,8 +578,7 @@ void sendPodToStation(){
 			<source ref="id14"/>
 			<target ref="id14"/>
 			<label kind="guard" x="-255" y="221">stopped==false</label>
-			<label kind="synchronisation" x="-255" y="238">StopStations[id]!</label>
-			<label kind="assignment" x="-255" y="255">stopped=true</label>
+			<label kind="assignment" x="-255" y="238">stopped=true, stopStationsGlobal(id)</label>
 			<nail x="-255" y="213"/>
 			<nail x="-188" y="213"/>
 		</transition>
@@ -748,34 +767,10 @@ bool checkPod(){
 			<nail x="-544" y="-289"/>
 		</transition>
 	</template>
-	<template>
-		<name>DummyStations</name>
-		<parameter>const dummySensor_t id</parameter>
-		<location id="id25" x="-501" y="-161">
-			<name x="-511" y="-195">Go</name>
-		</location>
-		<location id="id26" x="-246" y="-170">
-			<name x="-256" y="-204">Stop</name>
-		</location>
-		<init ref="id25"/>
-		<transition>
-			<source ref="id26"/>
-			<target ref="id25"/>
-			<label kind="guard" x="-399" y="-85">getValSensors(id,2)</label>
-			<label kind="synchronisation" x="-399" y="-102">move?</label>
-			<nail x="-365" y="-110"/>
-		</transition>
-		<transition>
-			<source ref="id25"/>
-			<target ref="id26"/>
-			<label kind="synchronisation" x="-408" y="-255">StopStations[id]?</label>
-			<nail x="-365" y="-229"/>
-		</transition>
-	</template>
 	<system>// Place template instantiations here.
 Process = Belt_Handler();
 // List one or more processes to be composed into a system.
-system Pod,Station,Queue,DummyStations,FirstSensor,SecondSensor, Process;
+system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
     </system>
 	<queries>
 		<query>
