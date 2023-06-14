@@ -474,7 +474,7 @@ void freeBlockedPods(){
 		</location>
 		<location id="id9" x="-229" y="-34">
 			<name x="-246" y="-76">Proc</name>
-			<label kind="invariant" x="-433" y="17">stationClock&lt;=processing_time &amp;&amp; stationClock&gt;=processing_time</label>
+			<label kind="invariant" x="-425" y="-17">stationClock&lt;=processing_time &amp;&amp; stationClock&gt;=processing_time</label>
 		</location>
 		<location id="id10" x="229" y="-34">
 			<name x="195" y="-68">Release</name>
@@ -483,7 +483,21 @@ void freeBlockedPods(){
 		<location id="id11" x="-221" y="-348">
 			<label kind="invariant" x="-323" y="-391">stationClock &lt;= processing_time</label>
 		</location>
+		<location id="id12" x="-450" y="68">
+			<label kind="invariant" x="-544" y="85">stationClock&lt;=processing_time</label>
+		</location>
 		<init ref="id8"/>
+		<transition>
+			<source ref="id12"/>
+			<target ref="id9"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id12"/>
+			<label kind="guard" x="-799" y="34">isFree()</label>
+			<label kind="synchronisation" x="-799" y="59">entryStation[id]?</label>
+			<label kind="assignment" x="-807" y="85">stationClock:=0 , station_free[id]=false</label>
+		</transition>
 		<transition>
 			<source ref="id11"/>
 			<target ref="id8"/>
@@ -499,13 +513,6 @@ void freeBlockedPods(){
 		<transition>
 			<source ref="id9"/>
 			<target ref="id10"/>
-		</transition>
-		<transition>
-			<source ref="id8"/>
-			<target ref="id9"/>
-			<label kind="guard" x="-450" y="-59">isFree()</label>
-			<label kind="synchronisation" x="-578" y="-59">entryStation[id]?</label>
-			<label kind="assignment" x="-611" y="-25">stationClock:=0 , station_free[id]=false</label>
 		</transition>
 	</template>
 	<template>
@@ -536,75 +543,75 @@ void initializeQueue(){
 void sendPodToStation(){
 
 }</declaration>
-		<location id="id12" x="-476" y="-144">
+		<location id="id13" x="-476" y="-144">
 			<name x="-595" y="-187">NotBusy</name>
-			<label kind="invariant" x="-595" y="-170">busy == false</label>
+			<label kind="invariant" x="-603" y="-170">busy == false</label>
 		</location>
-		<location id="id13" x="-25" y="-136">
+		<location id="id14" x="-25" y="-136">
 			<name x="34" y="-170">Busy</name>
-			<label kind="invariant" x="34" y="-153">busy==true</label>
+			<label kind="invariant" x="34" y="-144">busy == true</label>
 		</location>
-		<location id="id14" x="-255" y="136">
+		<location id="id15" x="-255" y="136">
 			<name x="-230" y="128">StopStationBefore</name>
 		</location>
-		<location id="id15" x="-841" y="-153">
+		<location id="id16" x="-841" y="-153">
 			<name x="-851" y="-187">Initialized</name>
 		</location>
-		<location id="id16" x="-1071" y="-153">
+		<location id="id17" x="-1071" y="-153">
 			<name x="-1081" y="-187">Start</name>
 		</location>
-		<init ref="id16"/>
+		<init ref="id17"/>
 		<transition>
-			<source ref="id16"/>
-			<target ref="id15"/>
+			<source ref="id17"/>
+			<target ref="id16"/>
 			<label kind="synchronisation" x="-1053" y="-170">initializer?</label>
 			<label kind="assignment" x="-1053" y="-153">initializeQueue()</label>
 		</transition>
 		<transition>
-			<source ref="id14"/>
-			<target ref="id12"/>
+			<source ref="id15"/>
+			<target ref="id13"/>
 			<label kind="synchronisation" x="-552" y="-17">exitStation[id]?</label>
 			<label kind="assignment" x="-731" y="0">stopped=false,busy=false, resumeStationsGlobal(id)</label>
 		</transition>
 		<transition>
-			<source ref="id15"/>
-			<target ref="id13"/>
+			<source ref="id16"/>
+			<target ref="id14"/>
 			<label kind="guard" x="-399" y="-408">initialized &amp;&amp; ready</label>
 			<label kind="synchronisation" x="-399" y="-425">check?</label>
 			<label kind="assignment" x="-399" y="-391">busy = true, enter_station(getIdPodInPos(posSensor1[id]))</label>
 			<nail x="-323" y="-365"/>
 		</transition>
 		<transition>
-			<source ref="id15"/>
-			<target ref="id12"/>
+			<source ref="id16"/>
+			<target ref="id13"/>
 			<label kind="guard" x="-722" y="-85">initialized &amp;&amp; !ready</label>
 			<label kind="synchronisation" x="-722" y="-102">check?</label>
 			<nail x="-646" y="-110"/>
 		</transition>
 		<transition>
-			<source ref="id14"/>
-			<target ref="id14"/>
+			<source ref="id15"/>
+			<target ref="id15"/>
 			<label kind="guard" x="-255" y="221">stopped==false</label>
 			<label kind="assignment" x="-255" y="238">stopped=true, stopStationsGlobal(id)</label>
 			<nail x="-255" y="213"/>
 			<nail x="-188" y="213"/>
 		</transition>
 		<transition>
-			<source ref="id13"/>
-			<target ref="id14"/>
+			<source ref="id14"/>
+			<target ref="id15"/>
 			<label kind="guard" x="-110" y="-34">getValSensors(id,2) &amp;&amp; checkPodBlockedInSensor2(id)</label>
 			<nail x="-119" y="-25"/>
 		</transition>
 		<transition>
-			<source ref="id13"/>
-			<target ref="id12"/>
+			<source ref="id14"/>
+			<target ref="id13"/>
 			<label kind="synchronisation" x="-314" y="-93">exitStation[id]?</label>
 			<label kind="assignment" x="-314" y="-76">busy=false</label>
 			<nail x="-263" y="-93"/>
 		</transition>
 		<transition>
-			<source ref="id12"/>
-			<target ref="id13"/>
+			<source ref="id13"/>
+			<target ref="id14"/>
 			<label kind="guard" x="-552" y="-255">getValSensors(id,1)</label>
 			<label kind="synchronisation" x="-552" y="-238">entryStation[id]!</label>
 			<label kind="assignment" x="-552" y="-221">busy = true, enter_station(getIdPodInPos(posSensor1[id]))</label>
@@ -636,56 +643,56 @@ bool checkPod(){
     return checkPodInPos(posSensor1[id]);
 }
 </declaration>
-		<location id="id17" x="-586" y="-195">
+		<location id="id18" x="-586" y="-195">
 			<name x="-663" y="-204">NoPod</name>
 		</location>
-		<location id="id18" x="-238" y="-187">
+		<location id="id19" x="-238" y="-187">
 			<name x="-221" y="-195">YesPod</name>
 		</location>
-		<location id="id19" x="-415" y="9">
+		<location id="id20" x="-415" y="9">
 			<name x="-510" y="0">Initialized</name>
 		</location>
-		<location id="id20" x="-416" y="153">
+		<location id="id21" x="-416" y="153">
 			<name x="-484" y="136">Start</name>
 		</location>
-		<init ref="id20"/>
+		<init ref="id21"/>
 		<transition>
-			<source ref="id20"/>
-			<target ref="id19"/>
+			<source ref="id21"/>
+			<target ref="id20"/>
 			<label kind="synchronisation" x="-408" y="68">initializer?</label>
 			<label kind="assignment" x="-408" y="85">initializeSensor1()</label>
 		</transition>
 		<transition>
-			<source ref="id17"/>
-			<target ref="id17"/>
+			<source ref="id18"/>
+			<target ref="id18"/>
 			<label kind="guard" x="-773" y="-221">!checkPod()</label>
 			<label kind="synchronisation" x="-773" y="-204">check?</label>
 			<nail x="-680" y="-263"/>
 			<nail x="-680" y="-119"/>
 		</transition>
 		<transition>
-			<source ref="id19"/>
-			<target ref="id17"/>
+			<source ref="id20"/>
+			<target ref="id18"/>
 			<label kind="guard" x="-688" y="-93">!posPresent &amp;&amp; initialized</label>
 			<label kind="synchronisation" x="-688" y="-110">check?</label>
 		</transition>
 		<transition>
-			<source ref="id19"/>
-			<target ref="id18"/>
+			<source ref="id20"/>
+			<target ref="id19"/>
 			<label kind="guard" x="-306" y="-102">posPresent</label>
 			<label kind="synchronisation" x="-306" y="-119">check?</label>
 			<label kind="assignment" x="-306" y="-85">setValSensors(id,1,true)</label>
 		</transition>
 		<transition>
-			<source ref="id18"/>
-			<target ref="id17"/>
+			<source ref="id19"/>
+			<target ref="id18"/>
 			<label kind="synchronisation" x="-493" y="-153">entryStation[id]?</label>
 			<label kind="assignment" x="-493" y="-136">setValSensors(id,1,false)</label>
 			<nail x="-416" y="-161"/>
 		</transition>
 		<transition>
-			<source ref="id17"/>
-			<target ref="id18"/>
+			<source ref="id18"/>
+			<target ref="id19"/>
 			<label kind="guard" x="-459" y="-314">checkPod()</label>
 			<label kind="synchronisation" x="-459" y="-297">check?</label>
 			<label kind="assignment" x="-459" y="-280">setValSensors(id,1,true)</label>
@@ -717,57 +724,57 @@ bool checkPod(){
     return checkPodInPos(posSensor2[id]);
 }
 </declaration>
-		<location id="id21" x="-739" y="-238">
+		<location id="id22" x="-739" y="-238">
 			<name x="-807" y="-255">NoPod</name>
 		</location>
-		<location id="id22" x="-331" y="-229">
+		<location id="id23" x="-331" y="-229">
 			<name x="-314" y="-238">YesPod</name>
 		</location>
-		<location id="id23" x="-544" y="-17">
+		<location id="id24" x="-544" y="-17">
 			<name x="-562" y="8">Initialized</name>
 		</location>
-		<location id="id24" x="-544" y="127">
+		<location id="id25" x="-544" y="127">
 			<name x="-552" y="144">Start</name>
 		</location>
-		<init ref="id24"/>
+		<init ref="id25"/>
 		<transition>
-			<source ref="id24"/>
-			<target ref="id23"/>
+			<source ref="id25"/>
+			<target ref="id24"/>
 			<label kind="synchronisation" x="-535" y="34">initializer?</label>
 			<label kind="assignment" x="-535" y="51">initializeSensor2()</label>
 		</transition>
 		<transition>
-			<source ref="id21"/>
-			<target ref="id21"/>
+			<source ref="id22"/>
+			<target ref="id22"/>
 			<label kind="guard" x="-977" y="-263">!checkPod()</label>
 			<label kind="synchronisation" x="-977" y="-246">check?</label>
 			<nail x="-824" y="-314"/>
 			<nail x="-824" y="-195"/>
 		</transition>
 		<transition>
-			<source ref="id23"/>
-			<target ref="id21"/>
+			<source ref="id24"/>
+			<target ref="id22"/>
 			<label kind="guard" x="-841" y="-136">!posPresent  &amp;&amp; initialized</label>
 			<label kind="synchronisation" x="-841" y="-153">check?</label>
 		</transition>
 		<transition>
-			<source ref="id23"/>
-			<target ref="id22"/>
+			<source ref="id24"/>
+			<target ref="id23"/>
 			<label kind="guard" x="-416" y="-144">posPresent</label>
 			<label kind="synchronisation" x="-399" y="-161">check?</label>
 			<label kind="assignment" x="-416" y="-127">setValSensors(id,2,true)</label>
 		</transition>
 		<transition>
-			<source ref="id22"/>
-			<target ref="id21"/>
+			<source ref="id23"/>
+			<target ref="id22"/>
 			<label kind="guard" x="-603" y="-195">!checkPod()</label>
 			<label kind="synchronisation" x="-603" y="-178">check?</label>
 			<label kind="assignment" x="-603" y="-161">setValSensors(id,2,false)</label>
 			<nail x="-544" y="-195"/>
 		</transition>
 		<transition>
-			<source ref="id21"/>
-			<target ref="id22"/>
+			<source ref="id22"/>
+			<target ref="id23"/>
 			<label kind="guard" x="-578" y="-348">checkPod()</label>
 			<label kind="synchronisation" x="-578" y="-331">check?</label>
 			<label kind="assignment" x="-578" y="-314">setValSensors(id,2,true)</label>
