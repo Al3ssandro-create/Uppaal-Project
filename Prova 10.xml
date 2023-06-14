@@ -68,7 +68,7 @@ broadcast chan entryStation[N_STATION];
 broadcast chan exitStation[N_STATION];
 chan StopStations[N_STATION];
 
-//chan priority move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1];
+chan priority move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1];
 
 /*** GLOBAL UTILITY FUNCTIONS ************************************************/
 
@@ -474,7 +474,7 @@ void freeBlockedPods(){
 		</location>
 		<location id="id9" x="-229" y="-34">
 			<name x="-246" y="-76">Proc</name>
-			<label kind="invariant" x="-425" y="-17">stationClock&lt;=processing_time &amp;&amp; stationClock&gt;=processing_time</label>
+			<label kind="invariant" x="-425" y="-17">stationClock&lt;=processing_time</label>
 		</location>
 		<location id="id10" x="229" y="-34">
 			<name x="195" y="-68">Release</name>
@@ -490,6 +490,7 @@ void freeBlockedPods(){
 		<transition>
 			<source ref="id12"/>
 			<target ref="id9"/>
+			<label kind="synchronisation" x="-432" y="0">move?</label>
 		</transition>
 		<transition>
 			<source ref="id8"/>
@@ -513,6 +514,7 @@ void freeBlockedPods(){
 		<transition>
 			<source ref="id9"/>
 			<target ref="id10"/>
+			<label kind="guard" x="-144" y="-68">stationClock==processing_time</label>
 		</transition>
 	</template>
 	<template>
