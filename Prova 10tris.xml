@@ -408,10 +408,12 @@ void setStationPosition(){
 
 </declaration>
 		<location id="id5" x="-518" y="-144">
+			<label kind="invariant" x="-528" y="-127">beltClock&lt;=1</label>
 		</location>
 		<location id="id6" x="-722" y="-144">
 		</location>
 		<location id="id7" x="-357" y="-144">
+			<label kind="invariant" x="-367" y="-127">beltClock&gt;=1 &amp;&amp; beltClock&lt;=2</label>
 		</location>
 		<init ref="id6"/>
 		<transition>
