@@ -223,6 +223,18 @@ bool otherBranchNotEndedGlobal(int branch){
     }
     return result;
 }
+bool checkSamePositionGlobal(int pod_id){
+    bool result = false;
+    int i;
+    for(i=0; i&lt;NUM_PODS; i++){
+        if(pods_position[pod_id] != MAX_POSITION - 1){
+            if(pods_position[pod_id]+1 == pods_position[i] &amp;&amp; pods_branch[pod_id] == pods_branch[i]) result = true;
+        }else{
+            if(pods_position[i]==0) result = true;
+        }
+    }
+    return result;
+}
 </declaration>
 	<template>
 		<name>Pod</name>
@@ -286,7 +298,7 @@ void checkWaiting(){
 }
 
 void checkBlocked(){
-    if((checkPodInPos(pods_position[id]+1) &amp;&amp; checkPodBlockedInPos(pods_position[id]+1)) || checkPosIsSensor1(pods_position[id]+1) &amp;&amp; checkPodInPos(pods_position[id]+1) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1)]==false) pods_blocked[id] = true;
+    if((checkSamePositionGlobal(id) &amp;&amp; checkPodBlockedInPos(pods_position[id]+1))||(pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPodInPos(0) &amp;&amp; checkPodBlockedInPos(0)) ||(pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0) &amp;&amp; checkPodInPos(0) &amp;&amp; station_free[getIdStationQueue(0)]==false)  || checkPosIsSensor1(pods_position[id]+1) &amp;&amp; checkPodInPos(pods_position[id]+1) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1)]==false) pods_blocked[id] = true;
     else pods_blocked[id] = false;
 }
 
@@ -482,10 +494,7 @@ void freeBlockedPods(){
 }
 bool checkNext(int id){
     int pod_id = station_pod[id].idPod;
-    bool result;
-    if(pods_position[pod_id]!=LENGTH_BRANCH[0]-1) result = !checkPodInPos(pods_position[pod_id]+1);
-    else result = !checkPodInPos(0);
-    return result;
+    return !checkSamePositionGlobal(pod_id);
 }
 
 
