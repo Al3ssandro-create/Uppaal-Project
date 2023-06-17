@@ -3,18 +3,17 @@
 <nta>
 	<declaration>///Constants
 
-const int LENGTH_PRINCIPAL_RAIL=13;
-const int LENGTH_DIRAMENT=5;
 const int NUM_PODS = 3;
 const int N_STATION = 2;
 const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
 const int POS_POD[NUM_PODS]={0,1,2};
-const int array_belt[LENGTH_PRINCIPAL_RAIL]={0,0,0,0,0,0,2,0,0,2,0,0,0};
-const int array_dirament[LENGTH_DIRAMENT]={0,0,0,0,0};
-const int diramation=0;
 const int previousStations[N_STATION][N_STATION] = {{0,1},{1,0}};
-
+const int SWITCH_POS=5;
+const int N_BRANCH = 3;
+const int LENGTH_BRANCH[N_BRANCH]={13,6,6};
+const int PODS_BRANCH[NUM_PODS]={0,0,0};
+const bool SWITCH = true; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
 /*** CLOCK ***/
 clock beltClock;
 
@@ -27,9 +26,10 @@ typedef int [0,N_STATION-1] secondSensor_t;
 typedef int [0,N_STATION-1] dummySensor_t;
 
 /*** GLOBAL VARIABLES***/
+int MAX_POSITION = 0;
 int pos_Id_Station[NUM_PODS];
-// 0: rail, 1: station: 2: sempahore
 int pods_position[NUM_PODS];
+int pods_branch[NUM_PODS]; //TODO: li inizialiamo a seconda della posizione?direi di si.
 bool pods_blocked[NUM_PODS];
 bool stations_blocked[N_STATION];
 int station_position[N_STATION]={8,11};
@@ -37,15 +37,6 @@ bool station_free[N_STATION]={true,true};
 bool valSensors[N_STATION][2];
 int posSensor1[N_STATION] = {7,10};
 int posSensor2[N_STATION] = {6,9};
-
-
-//We define a new datastructure depending on how many diramament has the railstation
-typedef struct{
-  int main[LENGTH_PRINCIPAL_RAIL];
-  int firs_diramantion[LENGTH_PRINCIPAL_RAIL];
-} ConveyorBelt;
-
-ConveyorBelt belt;
 
 //Tiene traccia del binomio pods_station quando la pods entra nella stazione
 typedef struct{
@@ -72,24 +63,24 @@ chan priority check,move &lt; default &lt; entryStation[N_STATION-1],exitStation
 void initialize(){
     int i;
     for(i=0;i&lt;NUM_PODS;i++){
-        pods_position[i]= POS_POD[i];
+        pods_position[i]=POS_POD[i];
+        pods_branch[i] = PODS_BRANCH[i];
     }
     
     for(i=0;i&lt;N_STATION;i++){
-       station_pod[i].idStation= i;
+       station_pod[i].idStation = i;
     }
     for(i=0;i&lt;N_STATION;i++){
-       station_pod[i].exit1=false;
+       station_pod[i].exit1 = false;
     }
-
-   if(diramation==0)
-        belt.main=array_belt;    
-
+    for(i=0;i&lt;N_BRANCH;i++){
+        MAX_POSITION = MAX_POSITION + LENGTH_BRANCH[i];
+    }
 }
 
 // aggiorna la posizione aggiungendo 1, chiamato dalla pods quando avanza 
 void updateCurrentPositionGlobal(int id){
-         if(pods_position[id]!=LENGTH_PRINCIPAL_RAIL-1) pods_position[id]=pods_position[id] + 1;
+         if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pods_position[id] + 1;
          else pods_position[id]=0;
 }
 
@@ -152,10 +143,12 @@ bool checkWaitingGlobal(int id){
 }
 
 bool checkIfStationGlobal(int id){
-    if(array_belt[pods_position[id]]==2)
-        return true;
-
-        return false;
+    bool result=false;
+    int i;
+    for(i=0; i&lt;N_STATION; i++){
+        if(pods_position[id]==station_position[i]) result = true;
+    }
+    return result;
 }
 
 
@@ -220,18 +213,28 @@ void resumeStationsGlobal(int id){
         if(previousStations[id][i]==1) stations_blocked[i] = false;
     }
 }
+bool otherBranchNotEndedGlobal(int branch){
+    int i;
+    bool result = true;
+    if(branch == 1){
+        for(i=0; i&lt;NUM_PODS; i++){
+            if(pods_branch[i] == 2 &amp;&amp; pods_position[i]-SWITCH_POS == LENGTH_BRANCH[2])result = false;
+        }
+    }
+    return result;
+}
 </declaration>
 	<template>
 		<name>Pod</name>
 		<parameter>const pod_t id</parameter>
 		<declaration>//true because we suppose you are ready and set to false if check go wrong
-bool ready= true;
-bool waiting= false;
-bool station= false;
+bool ready = true;
+bool waiting = false;
+bool station = false;
 int idStation = -1;
 
-
-int current_pos=POS_POD[id];
+int curr_branch = PODS_BRANCH[id];
+int current_pos=  POS_POD[id];
 
 
 
@@ -307,7 +310,12 @@ void checkStation(){
 void updateCurrentPosition(){
     checkBlocked();
     if(!pods_blocked[id]){
-        if(current_pos!=LENGTH_PRINCIPAL_RAIL-1){
+        if(curr_branch != 0 &amp;&amp; current_pos - SWITCH_POS == LENGTH_BRANCH[curr_branch] &amp;&amp; otherBranchNotEndedGlobal(curr_branch)){ //TODO: calcoli giusti? otherBranchNotEnded lo implementiamo in checkBlocked?
+            current_pos = current_pos + 1;
+            curr_branch=0;
+            updateCurrentPositionGlobal(id);
+            checkBlockedGlobal();
+        }else if(current_pos != MAX_POSITION-1){
             current_pos= current_pos + 1;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
@@ -318,7 +326,12 @@ void updateCurrentPosition(){
             checkBlockedGlobal();
             //checkStation();
         }
-        
+        if(SWITCH_POS == current_pos-1 &amp;&amp; SWITCH){
+            curr_branch=1;
+        }else if(SWITCH_POS == current_pos-1 &amp;&amp; !SWITCH){
+            curr_branch=2;
+        }
+        pods_branch[id]=curr_branch;
     }
     checkWaiting();
 }
@@ -394,7 +407,7 @@ void setStationPosition(){
 			<source ref="id1"/>
 			<target ref="id0"/>
 			<label kind="synchronisation" x="-935" y="-204">initializer?</label>
-			<label kind="assignment" x="-960" y="-178">initilaize()</label>
+			<label kind="assignment" x="-993" y="-182">initilaize()</label>
 		</transition>
 	</template>
 	<template>
@@ -470,7 +483,7 @@ void freeBlockedPods(){
 bool checkNext(int id){
     int pod_id = station_pod[id].idPod;
     bool result;
-    if(pods_position[pod_id]!=LENGTH_PRINCIPAL_RAIL-1) result = !checkPodInPos(pods_position[pod_id]+1);
+    if(pods_position[pod_id]!=LENGTH_BRANCH[0]-1) result = !checkPodInPos(pods_position[pod_id]+1);
     else result = !checkPodInPos(0);
     return result;
 }
