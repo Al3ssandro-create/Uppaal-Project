@@ -70,6 +70,7 @@ void initialize(){
     
     for(i=0;i&lt;N_STATION;i++){
        station_pod[i].idStation = i;
+       station_pod[i].idPod=-1;
     }
     for(i=0;i&lt;N_STATION;i++){
        station_pod[i].exit1 = false;
@@ -481,7 +482,10 @@ int count=1;
 /*
  *    Check whether the station is free
  */
-
+void TESTchangeProcessingTime(){
+    if(id==0)
+        processing_time=20;
+}
 bool isFree(){
     if (station_free[id]==true)
         return true;
@@ -517,7 +521,7 @@ bool checkNext(int id){
 		<location id="id10" x="-221" y="-348">
 		</location>
 		<location id="id11" x="-450" y="68">
-			<label kind="invariant" x="-612" y="85">stationClock&lt;=processing_time</label>
+			<label kind="invariant" x="-460" y="85">stationClock&lt;=processing_time</label>
 		</location>
 		<location id="id12" x="-229" y="-433">
 			<urgent/>
@@ -526,7 +530,7 @@ bool checkNext(int id){
 		<transition>
 			<source ref="id11"/>
 			<target ref="id9"/>
-			<label kind="guard" x="-432" y="-17">stationClock==processing_time</label>
+			<label kind="guard" x="-229" y="-42">stationClock==processing_time</label>
 		</transition>
 		<transition>
 			<source ref="id12"/>
@@ -542,9 +546,9 @@ bool checkNext(int id){
 		<transition>
 			<source ref="id8"/>
 			<target ref="id11"/>
-			<label kind="guard" x="-739" y="-8">isFree()</label>
-			<label kind="synchronisation" x="-739" y="17">entryStation[id]?</label>
-			<label kind="assignment" x="-739" y="42">stationClock:=0 , station_free[id]=false</label>
+			<label kind="guard" x="-952" y="-8">isFree()</label>
+			<label kind="synchronisation" x="-952" y="17">entryStation[id]?</label>
+			<label kind="assignment" x="-952" y="42">stationClock:=0 , station_free[id]=false, TESTchangeProcessingTime()</label>
 		</transition>
 		<transition>
 			<source ref="id10"/>
@@ -594,7 +598,7 @@ void sendPodToStation(){
 		</location>
 		<location id="id14" x="-25" y="-136">
 			<name x="34" y="-170">Busy</name>
-			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;=2</label>
+			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;2</label>
 		</location>
 		<location id="id15" x="-255" y="136">
 			<name x="-230" y="128">StopStationBefore</name>
