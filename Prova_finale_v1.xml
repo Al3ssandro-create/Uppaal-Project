@@ -86,10 +86,10 @@ void updateCurrentPositionGlobal(int id){
          else pods_position[id]=0;
 }
 
-int getIdPodInPos(int pos){
+int getIdPodInPos(int pos, int branch){
     int i;
     for(i=0; i&lt;NUM_PODS; i++){
-        if(pods_position[i]==pos) return i;
+        if(pods_position[i]==pos &amp;&amp; pods_branch[i]==branch) return i;
     }
     return -1;
 }
@@ -101,7 +101,7 @@ void checkBlockedGlobal(){
     }
     for(j=0; j&lt;N_STATION; j++){
         for(i=0; i&lt;NUM_PODS; i++){
-            if(pods_position[i]+1 == posSensor1[j] &amp;&amp; getIdPodInPos(pods_position[i]+1) != -1 )  pods_blocked[i]=true;
+            if(pods_position[i]+1 == posSensor1[j] &amp;&amp; pods_branch[i] == station_branch[j]  &amp;&amp; getIdPodInPos(pods_position[i]+1, pods_branch[i]) != -1 )  pods_blocked[i]=true;
         }
     }
 }
@@ -114,6 +114,7 @@ void enter_station(int id){
             if(station_position[i]==pods_position[id]+1 &amp;&amp; station_branch[i]==pods_branch[id]|| pods_position[id] == MAX_POSITION &amp;&amp; station_position[i]==0 &amp;&amp; station_branch[i]==pods_branch[id])
                 station_pod[i].idPod=id;
     }
+    checkBlockedGlobal();
 }
 
 //chiamata dalla pods, controlla se la stazione in cui è la pods è libera, se è così ritorna true altrimenti ritorna false
@@ -175,10 +176,10 @@ bool checkPodInPos(int pos,int id_sensor){
     return false;
 }
 
-bool checkPodBlockedInPos(int pos){
+bool checkPodBlockedInPos(int pos, int branch){
     int i;
     for(i=0; i&lt;NUM_PODS; i++){
-        if(pods_position[i]==pos &amp;&amp; pods_blocked[i] == true ) return true;
+        if(pods_position[i]==pos &amp;&amp; pods_branch[i] == branch &amp;&amp; pods_blocked[i] == true ) return true;
     }
     return false;
 }
@@ -194,7 +195,7 @@ bool checkPosIsSensor1(int pos){
 bool checkPodBlockedInSensor2(int id) {
     int i;
     for(i=0; i&lt;NUM_PODS; i++){
-        if(pods_position[i]==posSensor2[id] &amp;&amp; checkPodBlockedInPos(pods_position[i])) return true;
+        if(pods_position[i]==posSensor2[id] &amp;&amp; checkPodBlockedInPos(pods_position[i], pods_branch[i])) return true;
     }
     return false;
 }
@@ -305,7 +306,7 @@ void checkWaiting(){
 }
 
 void checkBlocked(){
-    if((checkSamePositionGlobal(id) &amp;&amp; checkPodBlockedInPos(pods_position[id]+1))||(pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPodInPos(0,-1) &amp;&amp; checkPodBlockedInPos(0)) ||(pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0) &amp;&amp; checkPodInPos(0,-1) &amp;&amp; station_free[getIdStationQueue(0)]==false)  || checkPosIsSensor1(pods_position[id]+1) &amp;&amp; checkPodInPos(pods_position[id]+1,-1) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1)]==false) pods_blocked[id] = true;
+    if((checkSamePositionGlobal(id) &amp;&amp; checkPodBlockedInPos(pods_position[id]+1, pods_branch[id]))||(pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPodInPos(0,-1) &amp;&amp; checkPodBlockedInPos(0,0)) ||(pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0) &amp;&amp; checkPodInPos(0,-1) &amp;&amp; station_free[getIdStationQueue(0)]==false)  || checkPosIsSensor1(pods_position[id]+1) &amp;&amp; checkPodInPos(pods_position[id]+1,-1) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1)]==false) pods_blocked[id] = true;
     else pods_blocked[id] = false;
 }
 
@@ -378,14 +379,14 @@ void setStationPosition(){
 		</location>
 		<location id="id2" x="-1003" y="-323">
 			<name x="-994" y="-348">Wait</name>
-			<urgent/>
+			<label kind="invariant" x="-1130" y="-314">beltClock &lt;= 2</label>
 		</location>
 		<location id="id3" x="-569" y="-144">
 			<name x="-527" y="-161">Ready_to_move</name>
 		</location>
 		<location id="id4" x="-892" y="-501">
 			<name x="-902" y="-535">In_Station</name>
-			<label kind="invariant" x="-943" y="-569">beltClock &lt;=2</label>
+			<label kind="invariant" x="-918" y="-569">beltClock &lt;=2</label>
 		</location>
 		<init ref="id1"/>
 		<transition>
@@ -516,12 +517,12 @@ bool checkNext(int id){
 		</location>
 		<location id="id9" x="229" y="-34">
 			<name x="195" y="-68">Release</name>
-			<label kind="invariant" x="246" y="-51">stationClock &lt;= processing_time</label>
+			<label kind="invariant" x="219" y="-17">stationClock &lt;= processing_time</label>
 		</location>
 		<location id="id10" x="-221" y="-348">
 		</location>
 		<location id="id11" x="-450" y="68">
-			<label kind="invariant" x="-460" y="85">stationClock&lt;=processing_time</label>
+			<label kind="invariant" x="-460" y="85">stationClock &lt;= processing_time</label>
 		</location>
 		<location id="id12" x="-229" y="-433">
 			<urgent/>
@@ -598,7 +599,7 @@ void sendPodToStation(){
 		</location>
 		<location id="id14" x="-25" y="-136">
 			<name x="34" y="-170">Busy</name>
-			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;2</label>
+			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;=2</label>
 		</location>
 		<location id="id15" x="-255" y="136">
 			<name x="-230" y="128">StopStationBefore</name>
@@ -627,7 +628,7 @@ void sendPodToStation(){
 			<target ref="id14"/>
 			<label kind="guard" x="-399" y="-408">initialized &amp;&amp; ready</label>
 			<label kind="synchronisation" x="-399" y="-425">check?</label>
-			<label kind="assignment" x="-399" y="-391">busy = true, enter_station(getIdPodInPos(posSensor1[id]))</label>
+			<label kind="assignment" x="-399" y="-391">busy = true, enter_station(getIdPodInPos(posSensor1[id],station_branch[id]))</label>
 			<nail x="-323" y="-365"/>
 		</transition>
 		<transition>
@@ -663,7 +664,7 @@ void sendPodToStation(){
 			<target ref="id14"/>
 			<label kind="guard" x="-552" y="-255">getValSensors(id,1)</label>
 			<label kind="synchronisation" x="-552" y="-238">entryStation[id]!</label>
-			<label kind="assignment" x="-552" y="-221">busy = true, enter_station(getIdPodInPos(posSensor1[id]))</label>
+			<label kind="assignment" x="-552" y="-221">busy = true, enter_station(getIdPodInPos(posSensor1[id],station_branch[id]))</label>
 			<nail x="-297" y="-195"/>
 		</transition>
 	</template>
