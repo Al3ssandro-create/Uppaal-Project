@@ -166,6 +166,16 @@ bool getValSensors(int index, int pos){
     return valSensors[index][pos-1];
 }
 
+bool checkGlobalPosOccupied(int pos, int branch){
+	int i;
+    for(i=0; i&lt;NUM_PODS; i++){
+        if(pods_position[i]==pos &amp;&amp; pods_branch[i]==branch){
+			return true;
+        }
+    }
+    return false;
+}
+
 bool checkPodInPos(int pos,int id_sensor){
     int i;
     for(i=0; i&lt;NUM_PODS; i++){
@@ -186,10 +196,10 @@ bool checkPodBlockedInPos(int pos, int branch, int switch){
     return false;
 }
 
-bool checkPosIsSensor1(int pos){
+bool checkPosIsSensor1(int pos, int branch){
     int i;
     for(i=0; i&lt;N_STATION; i++){
-        if(posSensor1[i]==pos) return true;
+        if(posSensor1[i]==pos &amp;&amp; station_branch[i]==branch) return true;
     }
     return false;
 }
@@ -197,15 +207,15 @@ bool checkPosIsSensor1(int pos){
 bool checkPodBlockedInSensor2(int id) {
     int i;
     for(i=0; i&lt;NUM_PODS; i++){
-        if(pods_position[i]==posSensor2[id] &amp;&amp; checkPodBlockedInPos(pods_position[i], pods_branch[i], pods_switch[i])) return true;
+        if(pods_position[i]==posSensor2[id] &amp;&amp; pods_branch[i]==station_branch[id] &amp;&amp; checkPodBlockedInPos(pods_position[i], pods_branch[i], pods_switch[i])) return true;
     }
     return false;
 }
 
-int getIdStationQueue(int pos) {
+int getIdStationQueue(int pos, int branch) {
     int i;
     for(i=0; i&lt;N_STATION; i++){
-        if(posSensor1[i]==pos) return i;
+        if(posSensor1[i]==pos &amp;&amp; station_branch[i]==branch) return i;
     }
     return -1;
 }
@@ -288,11 +298,11 @@ void setReadyFalse(){
     ready=false;
 }
 
-int retrieve_waiting_station(int pos) {
+int retrieve_waiting_station(int pos, int branch) {
     int c=-1;
     int i=0;
     for (i = 0; i &lt; N_STATION; i++ ){
-        if(pos==posSensor1[i])
+        if(pos==posSensor1[i] &amp;&amp; branch==station_branch[i])
             c = i;
     }
     return c;
@@ -301,7 +311,7 @@ int retrieve_waiting_station(int pos) {
 void checkWaiting(){
     if(checkWaitingGlobal(id)) {
         waiting=true;
-        idStation = retrieve_waiting_station(pods_position[id]);
+        idStation = retrieve_waiting_station(pods_position[id],pods_branch[id]);
     }
     else {
         waiting=false;
@@ -311,10 +321,9 @@ void checkWaiting(){
 void checkBlocked(){
     if((checkSamePositionGlobal(id) &amp;&amp; checkPodBlockedInPos(pods_position[id]+1, pods_branch[id], pods_switch[id]))
         || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPodInPos(0,-1) &amp;&amp; checkPodBlockedInPos(0,0,-1)) 
-        || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0) &amp;&amp; checkPodInPos(0,-1) &amp;&amp; station_free[getIdStationQueue(0)]==false) 
-        || checkPosIsSensor1(pods_position[id]+1) &amp;&amp; checkPodInPos(pods_position[id]+1,-1) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1)]==false  //TODO: problema quando la pod davanti entra in stazione e la pod dietro di una posizione  
-                                                                                                                                                                  //  è in una different branch viene bloccata lo stessa per colpa dell'ultima condizione.
-) 
+        || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0,0) &amp;&amp; checkPodInPos(0,-1) &amp;&amp; station_free[getIdStationQueue(0,0)]==false) //TODO: checkPosIsSensor1 deve controllare sul branch 0 ?
+        || checkPosIsSensor1(pods_position[id]+1, pods_branch[id]) &amp;&amp; checkGlobalPosOccupied(pods_position[id]+1, pods_branch[id]) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1,pods_branch[id])]==false 
+        ) 
 
             pods_blocked[id] = true;
 
@@ -864,7 +873,7 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula></formula>
+			<formula>A[] exists(j : stat_t) !stations_blocked[j]</formula>
 			<comment></comment>
 		</query>
 		<query>
