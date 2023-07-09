@@ -13,8 +13,9 @@ const int previousStations[N_STATION][N_STATION] = {{0,1},{1,0}};
 const int SWITCH_POS[NUM_SWITCH]={5};
 const int NUM_BRANCH[NUM_SWITCH] ={1};
 const int PODS_BRANCH[NUM_PODS]={0,0,0};
-const int LENGTH_BRANCH[NUM_SWITCH][1]={{10}};
+const int LENGTH_BRANCH[NUM_SWITCH][1]={{15}};
 const int SWITCH[NUM_SWITCH] = {1}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
+const int POSITION_END_BRANCH[NUM_SWITCH]={16};
 /*** CLOCK ***/
 clock beltClock;
 
@@ -79,7 +80,11 @@ void initialize(){
     }
 
 }
-
+//this method is called at the end of the branch when the pods needs to be ricongiunta on the main branch
+void updateCurrentPositionAfterBranchGlobal(int id,int pos_end_branch){
+       if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pos_end_branch;
+       else pods_position[id]=0;
+}
 // aggiorna la posizione aggiungendo 1, chiamato dalla pods quando avanza 
 void updateCurrentPositionGlobal(int id){
          if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pods_position[id] + 1;
@@ -240,12 +245,13 @@ bool otherBranchNotEndedGlobal(int id){
     bool result = true; 
     int i;
     for(i = 0; i &lt; NUM_PODS; i++){
+//questo idf viene fatto perchè alcune pod aggiornano la propria posizione prima di altre per cui questo if dovrebbe risolvere le cose
         if(id&lt; i){
-            if(pods_position[i] == pods_position[id] &amp;&amp; pods_branch[id]!=pods_branch[i]){
+            if(pods_position[i]+1 == POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
                return false;
-        }
+                }
         }else if(id&gt;i){
-             if( pods_position[i] -1 == pods_position[id] &amp;&amp; pods_branch[id]!=pods_branch[i]){
+             if( pods_position[i] == POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
                return false;
              }
         }
@@ -357,9 +363,7 @@ void checkStation(){
 }
 
 
-
 //TODO: se la branch finisce quando c'è una stazione non vengono aggiornati le branch
-int boole=false;
 
 void updateCurrentPosition(){
     int i; 
@@ -368,16 +372,14 @@ void updateCurrentPosition(){
     if(!pods_blocked[id]){
 // controlla se si è alla fine del branch e se sull'altro branch non arriva un altro pod allo stesso momento
         if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; otherBranchNotEndedGlobal(id)){ //TODO: calcoli giusti? otherBranchNotEnded lo implementiamo in checkBlocked?
-            current_pos = current_pos + 1;
+            current_pos = POSITION_END_BRANCH[curr_branch-1];
+            updateCurrentPositionAfterBranchGlobal(id,POSITION_END_BRANCH[curr_branch-1]);
             curr_branch = 0;
             pods_switch[id] = -1;
-            updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
-        // se non sei alla fine della branch=0 incrementa posizione (caso base)
-         if(boole) boole=false;
-            else boole=true;
-       }else if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; !otherBranchNotEndedGlobal(id)){
-            // do nothing here, there is another pod on the main branch which is coming.
+
+    }else if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; !otherBranchNotEndedGlobal(id)){
+ 
      }else if(current_pos != MAX_POSITION-1  ){
             current_pos= current_pos + 1;
             updateCurrentPositionGlobal(id);
