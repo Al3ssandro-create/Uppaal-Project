@@ -3,22 +3,22 @@
 <nta>
 	<declaration>///Constants
 const int MAX_POSITION = 74;
-const int NUM_PODS = 3;
+const int NUM_PODS = 5;
 const int NUM_SWITCH = 1;
 const int N_STATION = 6;
 const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
-const int POS_POD[NUM_PODS]={0,1,2};
+const int POS_POD[NUM_PODS]={0,1,2,3,4};
 const int previousStations[N_STATION][N_STATION] = {{0,0,0,0,0,1}, {1,0,0,0,0,0},{0,1,0,0,0,0}, {0,0,1,0,0,0},{0,1,0,0,0,0},{0,0,0,1,1,0}};
 const int SWITCH_POS[NUM_SWITCH]={5};
 const int NUM_BRANCH[NUM_SWITCH] ={1};
-const int PODS_BRANCH[NUM_PODS]={0,0,0};
+const int PODS_BRANCH[NUM_PODS]={0,0,0,0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
 const int SWITCH[NUM_SWITCH] = {1}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
-const int STATION_POSITION[N_STATION]={13,28,52,58,63,72};
+const int STATION_POSITION[N_STATION]={13,28,52,59,63,72};
 const int STATION_BRANCH[N_STATION]={0,0,0,0,1,0};
-const int POS_SENSOR_1[N_STATION] = {12,27,52,57,62,71};
-const int POS_SENSOR_2[N_STATION] = {1,17,51,53,54,69};
+const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
+const int POS_SENSOR_2[N_STATION] = {1,17,50,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
 
 /*** CLOCK ***/
@@ -28,12 +28,9 @@ clock beltClock;
 typedef int[0,NUM_PODS-1] pod_t;
 typedef int[0,N_STATION-1] stat_t;
 typedef int [0,N_STATION-1] queue_t;
-typedef int [0,N_STATION-1] firstSensor_t;
-typedef int [0,N_STATION-1] secondSensor_t;
-typedef int [0,N_STATION-1] dummySensor_t;
 
 /*** GLOBAL VARIABLES***/
-int pods_switch[NUM_PODS]={-1,-1,-1};
+int pods_switch[NUM_PODS]={-1,-1,-1,-1,-1};
 int pos_Id_Station[NUM_PODS];
 int pods_position[NUM_PODS];
 int pods_branch[NUM_PODS]; 
@@ -115,16 +112,22 @@ void checkBlockedGlobal(){
     }
 }
 
+void setValSensors(int index, int pos, bool value){
+    valSensors[index][pos-1]=value;
+}
+
 //quando la pods entra nella stazione viene aggiornata la struttura dati utilizzata per tenere traccia delle pods nelle stazioni7
 //TODO: ma se la station sta subito dopo lo switch?
 void enter_station(int id){ 
-    int i;
+    int i,index;
     for(i=0;i&lt;N_STATION;i++){
             if(STATION_POSITION[i] == pods_position[id]+1 &amp;&amp; STATION_BRANCH[i]==pods_branch[id] &amp;&amp; pods_switch[id] == station_switch[i]
                 || pods_position[id] == MAX_POSITION &amp;&amp; STATION_POSITION[i]==0 &amp;&amp; STATION_BRANCH[i]==pods_branch[id] &amp;&amp; station_switch[i]==pods_switch[id]){
                 station_pod[i].idPod=id;
+                index=i;
                 }
-  }
+    }
+    setValSensors(index,1,false);
     checkBlockedGlobal();
 }
  
@@ -165,11 +168,6 @@ bool checkIfStationGlobal(int id){
         if(pods_position[id]==STATION_POSITION[i]) result = true;
     }
     return result;
-}
-
-
-void setValSensors(int index, int pos, bool value){
-    valSensors[index][pos-1]=value;
 }
 
 bool getValSensors(int index, int pos){
@@ -626,6 +624,14 @@ bool stopped = false;
 bool ready = false;
 bool initialized = false;
 
+bool checkPod1(){
+    return checkPodInPos(POS_SENSOR_1[id],id);
+}
+
+bool checkPod2(){
+    return checkPodInPos(POS_SENSOR_2[id],id);
+}
+
 bool getBusy() {
     return busy;
 }
@@ -642,10 +648,7 @@ void initializeQueue(){
     }
     initialized = true;
 }
-
-void sendPodToStation(){
-
-}</declaration>
+</declaration>
 		<location id="id13" x="-476" y="-144">
 			<name x="-595" y="-187">NotBusy</name>
 			<label kind="invariant" x="-603" y="-170">busy == false</label>
@@ -702,7 +705,7 @@ void sendPodToStation(){
 		<transition>
 			<source ref="id14"/>
 			<target ref="id15"/>
-			<label kind="guard" x="-110" y="-34">getValSensors(id,2) &amp;&amp; checkPodBlockedInSensor2(id)</label>
+			<label kind="guard" x="-110" y="-34">checkPod2() &amp;&amp; checkPodBlockedInSensor2(id)</label>
 			<nail x="-119" y="-25"/>
 		</transition>
 		<transition>
@@ -715,179 +718,16 @@ void sendPodToStation(){
 		<transition>
 			<source ref="id13"/>
 			<target ref="id14"/>
-			<label kind="guard" x="-552" y="-255">getValSensors(id,1)</label>
+			<label kind="guard" x="-552" y="-255">checkPod1()</label>
 			<label kind="synchronisation" x="-552" y="-238">entryStation[id]!</label>
 			<label kind="assignment" x="-552" y="-221">busy = true, enter_station(getIdPodInPos(POS_SENSOR_1[id], STATION_BRANCH[id], station_switch[id]))</label>
 			<nail x="-297" y="-195"/>
 		</transition>
 	</template>
-	<template>
-		<name>FirstSensor</name>
-		<parameter>const firstSensor_t id</parameter>
-		<declaration>bool posPresent = false;
-bool initialized = false;
-
-//Usa le variabili globali per capire se c'è una pod nella sua cella
-void checkPodPresent(int pos){
-    if(checkPodInPos(pos,id)){
-        posPresent = true;
-    } else {
-        posPresent = false;
-    }
-}
-
-//Permette di porsi in NoPod o YesPod quando comincia la simulazione
-void initializeSensor1(){
-    checkPodPresent(POS_SENSOR_1[id]);
-    initialized = true;
-}
-
-bool checkPod(){
-    return checkPodInPos(POS_SENSOR_1[id],id);
-}
-</declaration>
-		<location id="id18" x="-586" y="-195">
-			<name x="-663" y="-204">NoPod</name>
-		</location>
-		<location id="id19" x="-238" y="-187">
-			<name x="-221" y="-195">YesPod</name>
-		</location>
-		<location id="id20" x="-415" y="9">
-			<name x="-510" y="0">Initialized</name>
-		</location>
-		<location id="id21" x="-416" y="153">
-			<name x="-484" y="136">Start</name>
-		</location>
-		<init ref="id21"/>
-		<transition>
-			<source ref="id21"/>
-			<target ref="id20"/>
-			<label kind="synchronisation" x="-408" y="68">initializer?</label>
-			<label kind="assignment" x="-408" y="85">initializeSensor1()</label>
-		</transition>
-		<transition>
-			<source ref="id18"/>
-			<target ref="id18"/>
-			<label kind="guard" x="-773" y="-221">!checkPod()</label>
-			<label kind="synchronisation" x="-773" y="-204">check?</label>
-			<nail x="-680" y="-263"/>
-			<nail x="-680" y="-119"/>
-		</transition>
-		<transition>
-			<source ref="id20"/>
-			<target ref="id18"/>
-			<label kind="guard" x="-688" y="-93">!posPresent &amp;&amp; initialized</label>
-			<label kind="synchronisation" x="-688" y="-110">check?</label>
-		</transition>
-		<transition>
-			<source ref="id20"/>
-			<target ref="id19"/>
-			<label kind="guard" x="-306" y="-102">posPresent</label>
-			<label kind="synchronisation" x="-306" y="-119">check?</label>
-			<label kind="assignment" x="-306" y="-85">setValSensors(id,1,true)</label>
-		</transition>
-		<transition>
-			<source ref="id19"/>
-			<target ref="id18"/>
-			<label kind="synchronisation" x="-493" y="-153">entryStation[id]?</label>
-			<label kind="assignment" x="-493" y="-136">setValSensors(id,1,false)</label>
-			<nail x="-416" y="-161"/>
-		</transition>
-		<transition>
-			<source ref="id18"/>
-			<target ref="id19"/>
-			<label kind="guard" x="-459" y="-314">checkPod()</label>
-			<label kind="synchronisation" x="-459" y="-297">check?</label>
-			<label kind="assignment" x="-459" y="-280">setValSensors(id,1,true)</label>
-			<nail x="-408" y="-229"/>
-		</transition>
-	</template>
-	<template>
-		<name>SecondSensor</name>
-		<parameter>const secondSensor_t id</parameter>
-		<declaration>bool posPresent = false;
-bool initialized = false;
-
-//Usa le variabili globali per capire se c'è una pod nella sua cella
-void checkPodPresent(int pos){
-    if(checkPodInPos(pos,id)){
-        posPresent = true;
-    } else {
-        posPresent = false;
-    }
-}
-
-//Permette di porsi in NoPod o YesPod quando comincia la simulazione
-void initializeSensor2(){
-    checkPodPresent(POS_SENSOR_2[id]);
-    initialized = true;
-}
-
-bool checkPod(){
-    return checkPodInPos(POS_SENSOR_2[id],id);
-}
-</declaration>
-		<location id="id22" x="-739" y="-238">
-			<name x="-807" y="-255">NoPod</name>
-		</location>
-		<location id="id23" x="-331" y="-229">
-			<name x="-314" y="-238">YesPod</name>
-		</location>
-		<location id="id24" x="-544" y="-17">
-			<name x="-562" y="8">Initialized</name>
-		</location>
-		<location id="id25" x="-544" y="127">
-			<name x="-552" y="144">Start</name>
-		</location>
-		<init ref="id25"/>
-		<transition>
-			<source ref="id25"/>
-			<target ref="id24"/>
-			<label kind="synchronisation" x="-535" y="34">initializer?</label>
-			<label kind="assignment" x="-535" y="51">initializeSensor2()</label>
-		</transition>
-		<transition>
-			<source ref="id22"/>
-			<target ref="id22"/>
-			<label kind="guard" x="-977" y="-263">!checkPod()</label>
-			<label kind="synchronisation" x="-977" y="-246">check?</label>
-			<nail x="-824" y="-314"/>
-			<nail x="-824" y="-195"/>
-		</transition>
-		<transition>
-			<source ref="id24"/>
-			<target ref="id22"/>
-			<label kind="guard" x="-841" y="-136">!posPresent  &amp;&amp; initialized</label>
-			<label kind="synchronisation" x="-841" y="-153">check?</label>
-		</transition>
-		<transition>
-			<source ref="id24"/>
-			<target ref="id23"/>
-			<label kind="guard" x="-416" y="-144">posPresent</label>
-			<label kind="synchronisation" x="-399" y="-161">check?</label>
-			<label kind="assignment" x="-416" y="-127">setValSensors(id,2,true)</label>
-		</transition>
-		<transition>
-			<source ref="id23"/>
-			<target ref="id22"/>
-			<label kind="guard" x="-603" y="-195">!checkPod()</label>
-			<label kind="synchronisation" x="-603" y="-178">check?</label>
-			<label kind="assignment" x="-603" y="-161">setValSensors(id,2,false)</label>
-			<nail x="-544" y="-195"/>
-		</transition>
-		<transition>
-			<source ref="id22"/>
-			<target ref="id23"/>
-			<label kind="guard" x="-578" y="-348">checkPod()</label>
-			<label kind="synchronisation" x="-578" y="-331">check?</label>
-			<label kind="assignment" x="-578" y="-314">setValSensors(id,2,true)</label>
-			<nail x="-544" y="-289"/>
-		</transition>
-	</template>
 	<system>// Place template instantiations here.
 Process = Belt_Handler();
 // List one or more processes to be composed into a system.
-system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
+system Pod,Station,Queue, Process;
     </system>
 	<queries>
 		<query>
