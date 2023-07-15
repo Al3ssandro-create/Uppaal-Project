@@ -28,6 +28,8 @@ clock beltClock;
 typedef int[0,NUM_PODS-1] pod_t;
 typedef int[0,N_STATION-1] stat_t;
 typedef int [0,N_STATION-1] queue_t;
+typedef int [0,N_STATION-1] firstSensor_t;
+typedef int [0,N_STATION-1] secondSensor_t;
 
 /*** GLOBAL VARIABLES***/
 int pods_switch[NUM_PODS]={-1,-1,-1,-1,-1};
@@ -43,6 +45,9 @@ bool station_free[N_STATION]={true,true,true,true,true,true};
 bool valSensors[N_STATION][2];
 
 int counter=0; //it is used to select the id to go in the branch
+
+int error_first_sensors[N_STATION] = {1,2,3,4,5,6};
+int error_second_sensors[N_STATION] = {1,2,3,4,5,6};
 
 //Tiene traccia del binomio pods_station quando la pods entra nella stazione
 typedef struct{
@@ -73,7 +78,7 @@ broadcast chan entryStation[N_STATION];
 broadcast chan exitStation[N_STATION];
 chan StopStations[N_STATION];
 
-chan priority move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1] &lt; check;
+chan priority check,move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1];
 
 /*** GLOBAL UTILITY FUNCTIONS ************************************************/
 
@@ -140,11 +145,11 @@ void enter_station(int id){
                 station_pod[i].idPod=id;
                 index=i;
                 }
-    }
+  }
     setValSensors(index,1,false);
     checkBlockedGlobal();
 }
- 
+
 
 //chiamata dalla pods, controlla se la stazione in cui è la pods è libera, se è così ritorna true altrimenti ritorna false
 bool checkExitStation(int id){
@@ -624,14 +629,6 @@ bool stopped = false;
 bool ready = false;
 bool initialized = false;
 
-bool checkPod1(){
-    return checkPodInPos(POS_SENSOR_1[id],id);
-}
-
-bool checkPod2(){
-    return checkPodInPos(POS_SENSOR_2[id],id);
-}
-
 bool getBusy() {
     return busy;
 }
@@ -705,7 +702,7 @@ void initializeQueue(){
 		<transition>
 			<source ref="id13"/>
 			<target ref="id14"/>
-			<label kind="guard" x="-110" y="-34">checkPod2() &amp;&amp; checkPodBlockedInSensor2(id)</label>
+			<label kind="guard" x="-110" y="-34">getValSensors(id,2) &amp;&amp; checkPodBlockedInSensor2(id)</label>
 			<nail x="-119" y="-25"/>
 		</transition>
 		<transition>
@@ -718,22 +715,250 @@ void initializeQueue(){
 		<transition>
 			<source ref="id12"/>
 			<target ref="id13"/>
-			<label kind="guard" x="-552" y="-255">checkPod1()</label>
+			<label kind="guard" x="-552" y="-255">getValSensors(id,1) &amp;&amp; checkPodInPos(POS_SENSOR_1[id],id)</label>
 			<label kind="synchronisation" x="-552" y="-238">entryStation[id]!</label>
 			<label kind="assignment" x="-552" y="-221">busy = true, enter_station(getIdPodInPos(POS_SENSOR_1[id], STATION_BRANCH[id], station_switch[id]))</label>
 			<nail x="-297" y="-195"/>
 		</transition>
 	</template>
+	<template>
+		<name>FirstSensor</name>
+		<parameter>const firstSensor_t id</parameter>
+		<declaration>bool posPresent = false;
+bool initialized = false;
+int FirstSensorError;
+
+//Usa le variabili globali per capire se c'è una pod nella sua cella
+void checkPodPresent(int pos){
+    if(checkPodInPos(pos,id)){
+        posPresent = true;
+    } else {
+        posPresent = false;
+    }
+}
+
+//Permette di porsi in NoPod o YesPod quando comincia la simulazione
+void initializeSensor1(){
+    checkPodPresent(POS_SENSOR_1[id]);
+    FirstSensorError = error_first_sensors[id];
+    initialized = true;
+}
+
+bool checkPod(){
+    return checkPodInPos(POS_SENSOR_1[id],id);
+}
+</declaration>
+		<location id="id17" x="-586" y="-195">
+			<name x="-663" y="-204">NoPod</name>
+		</location>
+		<location id="id18" x="-85" y="-187">
+			<name x="-68" y="-195">YesPod</name>
+		</location>
+		<location id="id19" x="-415" y="9">
+			<name x="-510" y="0">Initialized</name>
+		</location>
+		<location id="id20" x="-416" y="153">
+			<name x="-484" y="136">Start</name>
+		</location>
+		<branchpoint id="id21" x="-85" y="-110">
+		</branchpoint>
+		<branchpoint id="id22" x="-408" y="-399">
+		</branchpoint>
+		<init ref="id20"/>
+		<transition>
+			<source ref="id21"/>
+			<target ref="id18"/>
+			<label kind="probability" x="-59" y="-102">100-FirstSensorError</label>
+			<nail x="-25" y="-110"/>
+		</transition>
+		<transition>
+			<source ref="id21"/>
+			<target ref="id17"/>
+			<label kind="assignment" x="-484" y="-110">setValSensors(id,1,false)</label>
+			<label kind="probability" x="-484" y="-93">FirstSensorError</label>
+			<nail x="-518" y="-110"/>
+		</transition>
+		<transition>
+			<source ref="id18"/>
+			<target ref="id21"/>
+		</transition>
+		<transition>
+			<source ref="id17"/>
+			<target ref="id18"/>
+			<label kind="guard" x="-450" y="-348">checkPod()</label>
+			<label kind="synchronisation" x="-450" y="-331">check?</label>
+			<label kind="assignment" x="-450" y="-314">setValSensors(id,1,true)</label>
+			<nail x="-391" y="-289"/>
+		</transition>
+		<transition>
+			<source ref="id18"/>
+			<target ref="id17"/>
+			<label kind="guard" x="-399" y="-246">!checkPod()</label>
+			<label kind="synchronisation" x="-399" y="-229">check?</label>
+			<label kind="assignment" x="-399" y="-212">setValSensors(id,1,false)</label>
+		</transition>
+		<transition>
+			<source ref="id22"/>
+			<target ref="id17"/>
+			<label kind="probability" x="-620" y="-425">100-FirstSensorError</label>
+			<nail x="-586" y="-399"/>
+		</transition>
+		<transition>
+			<source ref="id22"/>
+			<target ref="id18"/>
+			<label kind="assignment" x="-289" y="-340">setValSensors(id,1,true)</label>
+			<label kind="probability" x="-297" y="-357">FirstSensorError</label>
+		</transition>
+		<transition>
+			<source ref="id17"/>
+			<target ref="id22"/>
+		</transition>
+		<transition>
+			<source ref="id20"/>
+			<target ref="id19"/>
+			<label kind="synchronisation" x="-408" y="68">initializer?</label>
+			<label kind="assignment" x="-408" y="85">initializeSensor1()</label>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id17"/>
+			<label kind="guard" x="-688" y="-93">!posPresent &amp;&amp; initialized</label>
+			<label kind="synchronisation" x="-688" y="-110">check?</label>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id18"/>
+			<label kind="guard" x="-331" y="-25">posPresent</label>
+			<label kind="synchronisation" x="-331" y="-42">check?</label>
+			<label kind="assignment" x="-331" y="-8">setValSensors(id,1,true)</label>
+		</transition>
+		<transition>
+			<source ref="id18"/>
+			<target ref="id17"/>
+			<label kind="synchronisation" x="-484" y="-153">entryStation[id]?</label>
+			<label kind="assignment" x="-484" y="-136">setValSensors(id,1,false)</label>
+			<nail x="-416" y="-161"/>
+		</transition>
+	</template>
+	<template>
+		<name>SecondSensor</name>
+		<parameter>const secondSensor_t id</parameter>
+		<declaration>bool posPresent = false;
+bool initialized = false;
+int SecondSensorError;
+
+//Usa le variabili globali per capire se c'è una pod nella sua cella
+void checkPodPresent(int pos){
+    if(checkPodInPos(pos,id)){
+        posPresent = true;
+    } else {
+        posPresent = false;
+    }
+}
+
+//Permette di porsi in NoPod o YesPod quando comincia la simulazione
+void initializeSensor2(){
+    checkPodPresent(POS_SENSOR_2[id]);
+    SecondSensorError = error_second_sensors[id];
+    initialized = true;
+}
+
+bool checkPod(){
+    return checkPodInPos(POS_SENSOR_2[id],id);
+}
+</declaration>
+		<location id="id23" x="-739" y="-238">
+			<name x="-807" y="-255">NoPod</name>
+		</location>
+		<location id="id24" x="-119" y="-221">
+			<name x="-102" y="-230">YesPod</name>
+		</location>
+		<location id="id25" x="-544" y="-17">
+			<name x="-562" y="8">Initialized</name>
+		</location>
+		<location id="id26" x="-544" y="127">
+			<name x="-552" y="144">Start</name>
+		</location>
+		<branchpoint id="id27" x="-119" y="-136">
+		</branchpoint>
+		<branchpoint id="id28" x="-535" y="-518">
+		</branchpoint>
+		<init ref="id26"/>
+		<transition>
+			<source ref="id27"/>
+			<target ref="id24"/>
+			<label kind="probability" x="-102" y="-127">100-SecondSensorError</label>
+			<nail x="-51" y="-136"/>
+		</transition>
+		<transition>
+			<source ref="id27"/>
+			<target ref="id23"/>
+			<label kind="assignment" x="-603" y="-136">setValSensors(id,2,false)</label>
+			<label kind="probability" x="-603" y="-119">SecondSensorError</label>
+			<nail x="-654" y="-136"/>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id27"/>
+		</transition>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id23"/>
+			<label kind="probability" x="-714" y="-544">100-SecondSensorError</label>
+			<nail x="-739" y="-518"/>
+		</transition>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id24"/>
+			<label kind="assignment" x="-348" y="-408">setValSensors(id,2,true)</label>
+			<label kind="probability" x="-357" y="-425">SecondSensorError</label>
+		</transition>
+		<transition>
+			<source ref="id23"/>
+			<target ref="id28"/>
+		</transition>
+		<transition>
+			<source ref="id26"/>
+			<target ref="id25"/>
+			<label kind="synchronisation" x="-535" y="34">initializer?</label>
+			<label kind="assignment" x="-535" y="51">initializeSensor2()</label>
+		</transition>
+		<transition>
+			<source ref="id25"/>
+			<target ref="id23"/>
+			<label kind="guard" x="-841" y="-136">!posPresent  &amp;&amp; initialized</label>
+			<label kind="synchronisation" x="-841" y="-153">check?</label>
+		</transition>
+		<transition>
+			<source ref="id25"/>
+			<target ref="id24"/>
+			<label kind="guard" x="-408" y="-59">posPresent</label>
+			<label kind="synchronisation" x="-391" y="-76">check?</label>
+			<label kind="assignment" x="-408" y="-42">setValSensors(id,2,true)</label>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id23"/>
+			<label kind="guard" x="-603" y="-195">!checkPod()</label>
+			<label kind="synchronisation" x="-603" y="-178">check?</label>
+			<label kind="assignment" x="-603" y="-161">setValSensors(id,2,false)</label>
+			<nail x="-544" y="-195"/>
+		</transition>
+		<transition>
+			<source ref="id23"/>
+			<target ref="id24"/>
+			<label kind="guard" x="-578" y="-348">checkPod()</label>
+			<label kind="synchronisation" x="-578" y="-331">check?</label>
+			<label kind="assignment" x="-578" y="-314">setValSensors(id,2,true)</label>
+			<nail x="-544" y="-289"/>
+		</transition>
+	</template>
 	<system>// Place template instantiations here.
 Process = Belt_Handler();
 // List one or more processes to be composed into a system.
-system Pod,Station,Queue, Process;
+system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
     </system>
 	<queries>
-		<query>
-			<formula></formula>
-			<comment></comment>
-		</query>
 		<query>
 			<formula>A[] forall(i:pod_t) forall(j:pod_t) ((Pod(i).current_pos==Pod(j).current_pos &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch &amp;&amp; pods_switch[i]==pods_switch[j]) imply i==j)</formula>
 			<comment></comment>
