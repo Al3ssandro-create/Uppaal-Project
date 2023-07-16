@@ -20,6 +20,7 @@ const int STATION_BRANCH[N_STATION]={0,0,0,0,1,0};
 const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
 const int POS_SENSOR_2[N_STATION] = {1,17,50,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
+const int TAU = 10;
 
 /*** CLOCK ***/
 clock beltClock;
@@ -76,9 +77,9 @@ broadcast chan check;
 broadcast chan move;
 broadcast chan entryStation[N_STATION];
 broadcast chan exitStation[N_STATION];
-chan StopStations[N_STATION];
+broadcast chan StopStations[N_STATION];
 
-chan priority check,move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1];
+//chan priority check,move &lt; default &lt; entryStation[N_STATION-1],exitStation[N_STATION-1];
 
 /*** GLOBAL UTILITY FUNCTIONS ************************************************/
 
@@ -446,15 +447,18 @@ void setStationPosition(){
 }
 </declaration>
 		<location id="id0" x="-790" y="-178">
+			<label kind="exponentialrate" x="-800" y="-144">1000</label>
 		</location>
 		<location id="id1" x="-1011" y="-187">
+			<label kind="exponentialrate" x="-1021" y="-153">1000</label>
 		</location>
 		<location id="id2" x="-569" y="-144">
 			<name x="-527" y="-161">Ready_to_move</name>
+			<label kind="exponentialrate" x="-579" y="-110">1000</label>
 		</location>
 		<location id="id3" x="-892" y="-501">
 			<name x="-902" y="-535">In_Station</name>
-			<label kind="invariant" x="-918" y="-569">beltClock &lt;=2</label>
+			<label kind="exponentialrate" x="-902" y="-467">1000</label>
 		</location>
 		<init ref="id1"/>
 		<transition>
@@ -505,6 +509,7 @@ void setStationPosition(){
 			<label kind="invariant" x="-528" y="-127">beltClock&lt;=1</label>
 		</location>
 		<location id="id5" x="-722" y="-144">
+			<label kind="exponentialrate" x="-732" y="-110">1000</label>
 		</location>
 		<location id="id6" x="-357" y="-144">
 			<label kind="invariant" x="-367" y="-127">beltClock&gt;=1 &amp;&amp; beltClock&lt;=2</label>
@@ -519,7 +524,7 @@ void setStationPosition(){
 		<transition>
 			<source ref="id6"/>
 			<target ref="id4"/>
-			<label kind="guard" x="-561" y="-306">beltClock==2</label>
+			<label kind="guard" x="-561" y="-306">beltClock&gt;=2</label>
 			<label kind="synchronisation" x="-561" y="-289">move!</label>
 			<label kind="assignment" x="-561" y="-272">beltClock:=0</label>
 			<nail x="-442" y="-246"/>
@@ -573,9 +578,10 @@ bool checkNext(int id){
 		</location>
 		<location id="id8" x="-238" y="-85">
 			<name x="-272" y="-119">Release</name>
-			<label kind="invariant" x="-248" y="-68">stationClock &lt;= processingTime</label>
+			<label kind="exponentialrate" x="-248" y="-51">1000</label>
 		</location>
 		<location id="id9" x="-221" y="-348">
+			<label kind="exponentialrate" x="-204" y="-340">1000</label>
 		</location>
 		<location id="id10" x="-450" y="68">
 			<label kind="invariant" x="-460" y="85">stationClock &lt;= processingTime</label>
@@ -587,7 +593,7 @@ bool checkNext(int id){
 		<transition>
 			<source ref="id10"/>
 			<target ref="id8"/>
-			<label kind="guard" x="-510" y="-59">stationClock==processingTime</label>
+			<label kind="guard" x="-510" y="-59">stationClock&gt;=processingTime</label>
 		</transition>
 		<transition>
 			<source ref="id11"/>
@@ -649,13 +655,16 @@ void initializeQueue(){
 		<location id="id12" x="-476" y="-144">
 			<name x="-595" y="-187">NotBusy</name>
 			<label kind="invariant" x="-603" y="-170">busy == false</label>
+			<label kind="exponentialrate" x="-595" y="-153">1000</label>
 		</location>
 		<location id="id13" x="-25" y="-136">
 			<name x="34" y="-170">Busy</name>
-			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;=2</label>
+			<label kind="invariant" x="34" y="-144">busy == true</label>
+			<label kind="exponentialrate" x="-35" y="-102">1000</label>
 		</location>
 		<location id="id14" x="-255" y="136">
 			<name x="-230" y="128">StopStationBefore</name>
+			<label kind="exponentialrate" x="-229" y="144">1000</label>
 		</location>
 		<location id="id15" x="-841" y="-153">
 			<name x="-851" y="-187">Initialized</name>
@@ -750,9 +759,11 @@ bool checkPod(){
 </declaration>
 		<location id="id17" x="-586" y="-195">
 			<name x="-663" y="-204">NoPod</name>
+			<label kind="exponentialrate" x="-663" y="-178">1000</label>
 		</location>
 		<location id="id18" x="-85" y="-187">
 			<name x="-68" y="-195">YesPod</name>
+			<label kind="exponentialrate" x="-68" y="-212">1000</label>
 		</location>
 		<location id="id19" x="-415" y="9">
 			<name x="-510" y="0">Initialized</name>
@@ -869,9 +880,11 @@ bool checkPod(){
 </declaration>
 		<location id="id23" x="-739" y="-238">
 			<name x="-807" y="-255">NoPod</name>
+			<label kind="exponentialrate" x="-807" y="-238">1000</label>
 		</location>
 		<location id="id24" x="-119" y="-221">
 			<name x="-102" y="-230">YesPod</name>
+			<label kind="exponentialrate" x="-102" y="-246">1000</label>
 		</location>
 		<location id="id25" x="-544" y="-17">
 			<name x="-562" y="8">Initialized</name>
@@ -960,19 +973,23 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
     </system>
 	<queries>
 		<query>
-			<formula>A[] forall(i:pod_t) forall(j:pod_t) ((Pod(i).current_pos==Pod(j).current_pos &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch &amp;&amp; pods_switch[i]==pods_switch[j]) imply i==j)</formula>
+			<formula>Pr[&lt;=100] ([] forall(i:pod_t) forall(j:pod_t) ((Pod(i).current_pos==Pod(j).current_pos &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch &amp;&amp; pods_switch[i]==pods_switch[j]) imply i==j))</formula>
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] forall(i:pod_t)forall(j:stat_t)((pods_position[i]+1==POS_SENSOR_2[j]) imply !Pod(i).isBlocked())</formula>
+			<formula>Pr[&lt;=100] ([] forall(i:pod_t)forall(j:stat_t)((pods_position[i]+1==POS_SENSOR_2[j]) imply !Pod(i).isBlocked()))</formula>
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] exists(j : stat_t) !stations_blocked[j]</formula>
+			<formula>Pr[&lt;=100] ([] exists(j : stat_t) !stations_blocked[j])</formula>
 			<comment></comment>
 		</query>
 		<query>
-			<formula></formula>
+			<formula>Pr[&lt;=TAU] (&lt;&gt; Pod(0).In_Station)</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>simulate [&lt;=500] {Station(0).stationClock, Station(1).stationClock, Station(2).stationClock, Station(3).stationClock, Station(4).stationClock, Station(5).stationClock}</formula>
 			<comment></comment>
 		</query>
 	</queries>
