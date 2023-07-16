@@ -10,13 +10,14 @@ const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
 const int POS_POD[NUM_PODS]={0,1,2,3};
 const int previousStations[N_STATION][N_STATION] = {{0,0,0,0,0,1}, {1,0,0,0,0,0},{0,1,0,0,0,0}, {0,0,1,0,0,0},{0,1,0,0,0,0},{0,0,0,1,1,0}};
-const int SWITCH_POS[NUM_SWITCH]={5};
+const int SWITCH_POS[NUM_SWITCH]={50};
+int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
 const int NUM_BRANCH[NUM_SWITCH] ={1};
 const int PODS_BRANCH[NUM_PODS]={0,0,0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
 const int SWITCH[NUM_SWITCH] = {1}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
 const int STATION_POSITION[N_STATION]={13,28,52,59,63,72};
-const int STATION_BRANCH[N_STATION]={0,0,0,0,1,0};
+const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
 const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
 const int POS_SENSOR_2[N_STATION] = {1,17,-1,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
@@ -38,7 +39,7 @@ bool pods_blocked[NUM_PODS];
 bool stations_blocked[N_STATION];
 
 
-int station_switch[N_STATION]={-1,-1,-1,-1,0,-1};
+
 bool station_free[N_STATION]={true,true,true,true,true,true};
 bool valSensors[N_STATION][2];
 
@@ -375,14 +376,15 @@ void updateCurrentPosition(){
     if(!pods_blocked[id]){
 // controlla se si è alla fine del branch e se sull'altro branch non arriva un altro pod allo stesso momento
         if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; otherBranchNotEndedGlobal(id)){ //TODO: calcoli giusti? otherBranchNotEnded lo implementiamo in checkBlocked?
-            current_pos = POSITION_END_BRANCH[curr_branch-1];
-            updateCurrentPositionAfterBranchGlobal(id,POSITION_END_BRANCH[curr_branch-1]);
+            current_pos = SWITCH_POS[pods_switch[id]]+ POSITION_END_BRANCH[curr_branch-1];
+            updateCurrentPositionAfterBranchGlobal(id, SWITCH_POS[pods_switch[id]]+ POSITION_END_BRANCH[curr_branch-1]);
             curr_branch = 0;
             pods_switch[id] = -1;
             checkBlockedGlobal();
+            counter=10;
 
     }else if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; !otherBranchNotEndedGlobal(id)){
- 
+             counter=16;
      }else if(current_pos != MAX_POSITION-1  ){
             current_pos= current_pos + 1;
             updateCurrentPositionGlobal(id);
