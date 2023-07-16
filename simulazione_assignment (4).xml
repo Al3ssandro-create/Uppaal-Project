@@ -3,17 +3,17 @@
 <nta>
 	<declaration>///Constants
 const int MAX_POSITION = 74;
-const int NUM_PODS = 4;
+const int NUM_PODS = 5;
 const int NUM_SWITCH = 1;
 const int N_STATION = 6;
 const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
-const int POS_POD[NUM_PODS]={0,1,2,3};
+const int POS_POD[NUM_PODS]={0,1,2,3,4};
 const int previousStations[N_STATION][N_STATION] = {{0,0,0,0,0,1}, {1,0,0,0,0,0},{0,1,0,0,0,0}, {0,0,1,0,0,0},{0,1,0,0,0,0},{0,0,0,1,1,0}};
 const int SWITCH_POS[NUM_SWITCH]={50};
-int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
+const int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
 const int NUM_BRANCH[NUM_SWITCH] ={1};
-const int PODS_BRANCH[NUM_PODS]={0,0,0,0};
+const int PODS_BRANCH[NUM_PODS]={0,0,0,0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
 const int SWITCH[NUM_SWITCH] = {1}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
 const int STATION_POSITION[N_STATION]={13,28,52,59,63,72};
@@ -31,7 +31,7 @@ typedef int[0,N_STATION-1] stat_t;
 typedef int [0,N_STATION-1] queue_t;
 
 /*** GLOBAL VARIABLES***/
-int pods_switch[NUM_PODS]={-1,-1,-1,-1};
+int pods_switch[NUM_PODS]={-1,-1,-1,-1,-1};
 int pos_Id_Station[NUM_PODS];
 int pods_position[NUM_PODS];
 int pods_branch[NUM_PODS]; 
@@ -82,6 +82,21 @@ void initialize(){
     }
 
 }
+void blockNextIfPresent(int id){
+    int i;
+    bool flag;
+    flag = true;
+    while(flag){
+        flag = false;
+        for(i = 0; i &lt; NUM_PODS; i++){
+            if(pods_position[i] == pods_position[id]-1 &amp;&amp; pods_branch[i] == pods_branch[id] &amp;&amp; pods_switch[i]== pods_switch[id]){
+                pods_blocked[i]=true;
+                flag = true;
+                id = i;
+            }
+        }
+    }
+}
 //this method is called at the end of the branch when the pods needs to be ricongiunta on the main branch
 void updateCurrentPositionAfterBranchGlobal(int id,int pos_end_branch){
        if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pos_end_branch;
@@ -108,7 +123,10 @@ void checkBlockedGlobal(){
     }
     for(j=0; j&lt;N_STATION; j++){
         for(i=0; i&lt;NUM_PODS; i++){
-            if(pods_position[i]+1 == POS_SENSOR_1[j] &amp;&amp; pods_branch[i] == STATION_BRANCH[j]  &amp;&amp; getIdPodInPos(pods_position[i]+1, pods_branch[i], pods_switch[i]) != -1 )  pods_blocked[i]=true;
+            if(pods_position[i]+1 == POS_SENSOR_1[j] &amp;&amp; pods_branch[i] == STATION_BRANCH[j]  &amp;&amp; getIdPodInPos(pods_position[i]+1, pods_branch[i], pods_switch[i]) != -1 ){
+                  pods_blocked[i]=true;
+                  blockNextIfPresent(i);
+            }
         }
     }
 }
@@ -342,11 +360,12 @@ void checkBlocked(){
         || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPodInPos(0,-1) &amp;&amp; checkPodBlockedInPos(0,0,-1)) 
         || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0,0) &amp;&amp; checkPodInPos(0,-1) &amp;&amp; station_free[getIdStationQueue(0,0)]==false) //TODO: checkPosIsSensor1 deve controllare sul branch 0 ?
         || checkPosIsSensor1(pods_position[id]+1, pods_branch[id]) &amp;&amp; checkGlobalPosOccupied(pods_position[id]+1, pods_branch[id]) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1,pods_branch[id])]==false 
-        ) 
+        ) {
 
             pods_blocked[id] = true;
+            blockNextIfPresent(id);
 
-    else     pods_blocked[id] = false;
+    } else{     pods_blocked[id] = false;}
 }
 
 bool isWaiting(){
