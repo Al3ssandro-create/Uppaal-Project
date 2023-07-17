@@ -21,8 +21,10 @@ const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
 const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
 const int POS_SENSOR_2[N_STATION] = {1,17,-1,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
-const int STATION_PROCESSING_TIME[N_STATION]={2,3,4,5,6,20};
+const int STATION_PROCESSING_TIME[N_STATION]={2,3,4,5,6,15};
 
+bool firstIsPassed=true;
+int countHowManyPassed=0;
 /*** CLOCK ***/
 clock beltClock;
 
@@ -429,10 +431,10 @@ void updateCurrentPosition(){
             curr_branch = 0;
             pods_switch[id] = -1;
             checkBlockedGlobal();
-            counter=10;
+            
 
     }else if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; !otherBranchNotEndedGlobal(id)){
-             counter=16;
+             
      }else if(current_pos != MAX_POSITION-1  ){
             current_pos= current_pos + 1;
             updateCurrentPositionGlobal(id);
@@ -443,6 +445,9 @@ void updateCurrentPosition(){
       
             }else{
             current_pos=0;
+            clockPod=0;
+            firstIsPassed=false;
+            countHowManyPassed++;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
             //checkStation();
@@ -465,7 +470,7 @@ void freeBlocked(){
     pods_blocked[id] = false;
 }
 
-void initilaize(){
+void initializePod(){
     checkWaiting();
     checkStation();
     checkBlocked();
@@ -522,7 +527,7 @@ void setStationPosition(){
 			<source ref="id1"/>
 			<target ref="id0"/>
 			<label kind="synchronisation" x="-935" y="-204">initializer?</label>
-			<label kind="assignment" x="-993" y="-182">initilaize()</label>
+			<label kind="assignment" x="-952" y="-178">initializePod()</label>
 		</transition>
 	</template>
 	<template>
@@ -574,10 +579,6 @@ clock stationClock;
 int count=1;
 
 
-void TESTchangeProcessingTime(){
-    if(id==4)
-        processing_time=20;
-}
 
 bool isFree(){
     if (station_free[id]==true)
@@ -629,8 +630,8 @@ void initialize(){
 		<transition>
 			<source ref="id12"/>
 			<target ref="id7"/>
-			<label kind="synchronisation" x="-942" y="-59">initializer?</label>
-			<label kind="assignment" x="-942" y="-42">initialize()</label>
+			<label kind="synchronisation" x="-884" y="-76">initializer?</label>
+			<label kind="assignment" x="-867" y="-42">initialize()</label>
 		</transition>
 		<transition>
 			<source ref="id10"/>
@@ -653,7 +654,7 @@ void initialize(){
 			<target ref="id10"/>
 			<label kind="guard" x="-952" y="-8">isFree()</label>
 			<label kind="synchronisation" x="-952" y="17">entryStation[id]?</label>
-			<label kind="assignment" x="-952" y="42">stationClock:=0 , station_free[id]=false, TESTchangeProcessingTime()</label>
+			<label kind="assignment" x="-952" y="42">stationClock:=0 , station_free[id]=false</label>
 		</transition>
 		<transition>
 			<source ref="id9"/>
@@ -808,7 +809,15 @@ system Pod,Station,Queue, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>una query per verificare l'efficienza potrebbe essere la differenza di tempo che c'è tra il passaggio di una pod ed un altra</formula>
+			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 1 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=25 || countHowManyPassed&lt;=NUM_PODS-1))</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] sum(station_blocked:int) station_blocked==0</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
 			<comment></comment>
 		</query>
 		<query>
