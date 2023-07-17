@@ -3,17 +3,17 @@
 <nta>
 	<declaration>///Constants
 const int MAX_POSITION = 74;
-const int NUM_PODS = 10;
+const int NUM_PODS = 5;
 const int NUM_SWITCH = 1;
 const int N_STATION = 6;
 const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
-const int POS_POD[NUM_PODS]={0,1,2,3,4,5,6,7,8,9};
+const int POS_POD[NUM_PODS]={0,1,2,3,4};
 const int previousStations[N_STATION][N_STATION] = {{0,0,0,0,0,1}, {1,0,0,0,0,0},{0,1,0,0,0,0}, {0,0,1,0,0,0},{0,1,0,0,0,0},{0,0,0,1,1,0}};
 const int SWITCH_POS[NUM_SWITCH]={50};
 const int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
 const int NUM_BRANCH[NUM_SWITCH] ={1};
-const int PODS_BRANCH[NUM_PODS]={0,0,0,0,0,0,0,0,0,0};
+const int PODS_BRANCH[NUM_PODS]={0,0,0,0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
 const int SWITCH[NUM_SWITCH] = {1}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
 const int STATION_POSITION[N_STATION]={13,28,52,59,63,72};
@@ -21,10 +21,10 @@ const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
 const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
 const int POS_SENSOR_2[N_STATION] = {1,17,-1,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
-const int STATION_PROCESSING_TIME[N_STATION]={2,3,4,5,6,15};
+const int STATION_PROCESSING_TIME[N_STATION]={10,15,20,15,15,20};
+const int speedConveyorBelt=1;
 
-bool firstIsPassed=true;
-int countHowManyPassed=0;
+int countHowManyCompleted=0;
 /*** CLOCK ***/
 clock beltClock;
 
@@ -34,7 +34,7 @@ typedef int[0,N_STATION-1] stat_t;
 typedef int [0,N_STATION-1] queue_t;
 
 /*** GLOBAL VARIABLES***/
-int pods_switch[NUM_PODS]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int pods_switch[NUM_PODS]={-1,-1,-1,-1,-1};
 int pos_Id_Station[NUM_PODS];
 int pods_position[NUM_PODS];
 int pods_position_sorted[NUM_PODS]; //It has all the pods position sorted in modo crescente, it used in the last query
@@ -446,8 +446,7 @@ void updateCurrentPosition(){
             }else{
             current_pos=0;
             clockPod=0;
-            firstIsPassed=false;
-            countHowManyPassed++;
+            countHowManyCompleted++;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
             //checkStation();
@@ -539,24 +538,25 @@ void setStationPosition(){
 
 </declaration>
 		<location id="id4" x="-518" y="-144">
-			<label kind="invariant" x="-528" y="-127">beltClock&lt;=1</label>
+			<label kind="invariant" x="-654" y="-110">beltClock&lt;=speedConveyorBelt/2</label>
 		</location>
 		<location id="id5" x="-722" y="-144">
 		</location>
 		<location id="id6" x="-357" y="-144">
-			<label kind="invariant" x="-367" y="-127">beltClock&gt;=1 &amp;&amp; beltClock&lt;=2</label>
+			<label kind="invariant" x="-367" y="-127">beltClock&gt;=speedConveyorBelt/2
+ &amp;&amp; beltClock&lt;=speedConveyorBelt</label>
 		</location>
 		<init ref="id5"/>
 		<transition>
 			<source ref="id4"/>
 			<target ref="id6"/>
-			<label kind="guard" x="-500" y="-178">beltClock==1</label>
+			<label kind="guard" x="-500" y="-178">beltClock==speedConveyorBelt/2</label>
 			<label kind="synchronisation" x="-459" y="-144">check!</label>
 		</transition>
 		<transition>
 			<source ref="id6"/>
 			<target ref="id4"/>
-			<label kind="guard" x="-561" y="-306">beltClock==2</label>
+			<label kind="guard" x="-561" y="-306">beltClock==speedConveyorBelt</label>
 			<label kind="synchronisation" x="-561" y="-289">move!</label>
 			<label kind="assignment" x="-561" y="-272">beltClock:=0</label>
 			<nail x="-442" y="-246"/>
@@ -709,7 +709,7 @@ void initializeQueue(){
 		</location>
 		<location id="id14" x="-25" y="-136">
 			<name x="34" y="-170">Busy</name>
-			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;=2</label>
+			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;=speedConveyorBelt</label>
 		</location>
 		<location id="id15" x="-255" y="136">
 			<name x="-230" y="128">StopStationBefore</name>
@@ -809,7 +809,11 @@ system Pod,Station,Queue, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 1 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=25 || countHowManyPassed&lt;=NUM_PODS-1))</formula>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=200 || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
 			<comment></comment>
 		</query>
 		<query>
