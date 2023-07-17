@@ -10,17 +10,18 @@ const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
 const int POS_POD[NUM_PODS]={0,1,2,3,4};
 const int previousStations[N_STATION][N_STATION] = {{0,0,0,0,0,1}, {1,0,0,0,0,0},{0,1,0,0,0,0}, {0,0,1,0,0,0},{0,1,0,0,0,0},{0,0,0,1,1,0}};
-const int SWITCH_POS[NUM_SWITCH]={5};
+const int SWITCH_POS[NUM_SWITCH]={50};
+const int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
 const int NUM_BRANCH[NUM_SWITCH] ={1};
 const int PODS_BRANCH[NUM_PODS]={0,0,0,0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
 const int SWITCH[NUM_SWITCH] = {1}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
 const int STATION_POSITION[N_STATION]={13,28,52,59,63,72};
-const int STATION_BRANCH[N_STATION]={0,0,0,0,1,0};
+const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
 const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
-const int POS_SENSOR_2[N_STATION] = {1,17,50,54,54,69};
+const int POS_SENSOR_2[N_STATION] = {1,17,-1,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
-const int TAU = 300;
+const int TAU = 3000;
 
 /*** CLOCK ***/
 clock beltClock;
@@ -41,14 +42,14 @@ bool pods_blocked[NUM_PODS];
 bool stations_blocked[N_STATION];
 
 
-int station_switch[N_STATION]={-1,-1,-1,-1,0,-1};
+
 bool station_free[N_STATION]={true,true,true,true,true,true};
 bool valSensors[N_STATION][2];
 
 int counter=0; //it is used to select the id to go in the branch
 
-int error_first_sensors[N_STATION] = {1,2,3,4,5,6};
-int error_second_sensors[N_STATION] = {1,2,3,4,5,6};
+int error_first_sensors[N_STATION] = {50,50,50,50,50,50};
+int error_second_sensors[N_STATION] = {50,50,50,50,50,50};
 
 //Tiene traccia del binomio pods_station quando la pods entra nella stazione
 typedef struct{
@@ -100,6 +101,21 @@ void initialize(){
     }
 
 }
+void blockNextIfPresent(int id){
+    int i;
+    bool flag;
+    flag = true;
+    while(flag){
+        flag = false;
+        for(i = 0; i &lt; NUM_PODS; i++){
+            if(pods_position[i] == pods_position[id]-1 &amp;&amp; pods_branch[i] == pods_branch[id] &amp;&amp; pods_switch[i]== pods_switch[id]){
+                pods_blocked[i]=true;
+                flag = true;
+                id = i;
+            }
+        }
+    }
+}
 //this method is called at the end of the branch when the pods needs to be ricongiunta on the main branch
 void updateCurrentPositionAfterBranchGlobal(int id,int pos_end_branch){
        if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pos_end_branch;
@@ -126,8 +142,10 @@ void checkBlockedGlobal(){
     }
     for(j=0; j&lt;N_STATION; j++){
         for(i=0; i&lt;NUM_PODS; i++){
-            if(pods_position[i]+1 == POS_SENSOR_1[j] &amp;&amp; pods_branch[i] == STATION_BRANCH[j]  &amp;&amp; getIdPodInPos(pods_position[i]+1, pods_branch[i], pods_switch[i]) != -1 )  pods_blocked[i]=true;
-
+            if(pods_position[i]+1 == POS_SENSOR_1[j] &amp;&amp; pods_branch[i] == STATION_BRANCH[j]  &amp;&amp; getIdPodInPos(pods_position[i]+1, pods_branch[i], pods_switch[i]) != -1 ){
+                  pods_blocked[i]=true;
+                  blockNextIfPresent(i);
+            }
         }
     }
 }
@@ -140,13 +158,15 @@ void setValSensors(int index, int pos, bool value){
 //TODO: ma se la station sta subito dopo lo switch?
 void enter_station(int id){ 
     int i,index;
-    for(i=0;i&lt;N_STATION;i++){
+    if(id!=-1) {
+        for(i=0;i&lt;N_STATION;i++){
             if(STATION_POSITION[i] == pods_position[id]+1 &amp;&amp; STATION_BRANCH[i]==pods_branch[id] &amp;&amp; pods_switch[id] == station_switch[i]
                 || pods_position[id] == MAX_POSITION &amp;&amp; STATION_POSITION[i]==0 &amp;&amp; STATION_BRANCH[i]==pods_branch[id] &amp;&amp; station_switch[i]==pods_switch[id]){
                 station_pod[i].idPod=id;
                 index=i;
                 }
-  }
+        }
+    }
     setValSensors(index,1,false);
     checkBlockedGlobal();
 }
@@ -206,6 +226,7 @@ bool checkGlobalPosOccupied(int pos, int branch){
 
 bool checkPodInPos(int pos,int id_sensor){
     int i;
+    if(pos==-1) return false;
     for(i=0; i&lt;NUM_PODS; i++){
         if(id_sensor!=-1){
             if(pods_position[i]==pos &amp;&amp; pods_branch[i]==STATION_BRANCH[id_sensor] &amp;&amp; pods_switch[i]==station_switch[id_sensor]) return true;
@@ -284,13 +305,15 @@ bool otherBranchNotEndedGlobal(int id){
 bool checkSamePositionGlobal(int pod_id){
     bool result = false;
     int i;
-    for(i=0; i&lt;NUM_PODS; i++){
-        if(pods_position[pod_id] != MAX_POSITION - 1){
-            if(i!=pod_id &amp;&amp; pods_position[pod_id]+1 == pods_position[i] &amp;&amp; pods_branch[pod_id] == pods_branch[i] &amp;&amp; pods_switch[pod_id] == pods_switch[i]) result = true;
-        }else{
-            if(pods_position[i]==0) result = true;
+    if(pod_id != -1) {
+        for(i=0; i&lt;NUM_PODS; i++){
+            if(pods_position[pod_id] != MAX_POSITION - 1){
+                if(i!=pod_id &amp;&amp; pods_position[pod_id]+1 == pods_position[i] &amp;&amp; pods_branch[pod_id] == pods_branch[i] &amp;&amp; pods_switch[pod_id] == pods_switch[i]) result = true;
+            }else{
+                if(pods_position[i]==0) result = true;
+            }
         }
-    }
+    } else return true;
     return result;
 }
 </declaration>
@@ -360,11 +383,12 @@ void checkBlocked(){
         || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPodInPos(0,-1) &amp;&amp; checkPodBlockedInPos(0,0,-1)) 
         || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0,0) &amp;&amp; checkPodInPos(0,-1) &amp;&amp; station_free[getIdStationQueue(0,0)]==false) //TODO: checkPosIsSensor1 deve controllare sul branch 0 ?
         || checkPosIsSensor1(pods_position[id]+1, pods_branch[id]) &amp;&amp; checkGlobalPosOccupied(pods_position[id]+1, pods_branch[id]) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1,pods_branch[id])]==false 
-        ){
+        ) {
 
             pods_blocked[id] = true;
+            blockNextIfPresent(id);
 
-    }else{     pods_blocked[id] = false;}
+    } else{     pods_blocked[id] = false;}
 }
 
 bool isWaiting(){
@@ -394,14 +418,15 @@ void updateCurrentPosition(){
     if(!pods_blocked[id]){
 // controlla se si è alla fine del branch e se sull'altro branch non arriva un altro pod allo stesso momento
         if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; otherBranchNotEndedGlobal(id)){ //TODO: calcoli giusti? otherBranchNotEnded lo implementiamo in checkBlocked?
-            current_pos = POSITION_END_BRANCH[curr_branch-1];
-            updateCurrentPositionAfterBranchGlobal(id,POSITION_END_BRANCH[curr_branch-1]);
+            current_pos = SWITCH_POS[pods_switch[id]]+ POSITION_END_BRANCH[curr_branch-1];
+            updateCurrentPositionAfterBranchGlobal(id, SWITCH_POS[pods_switch[id]]+ POSITION_END_BRANCH[curr_branch-1]);
             curr_branch = 0;
             pods_switch[id] = -1;
             checkBlockedGlobal();
+            counter=10;
 
     }else if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; !otherBranchNotEndedGlobal(id)){
- 
+             counter=16;
      }else if(current_pos != MAX_POSITION-1  ){
             current_pos= current_pos + 1;
             updateCurrentPositionGlobal(id);
@@ -445,6 +470,7 @@ void setStationPosition(){
     current_pos = STATION_POSITION[idStation];
     station_pod[idStation].idPod = id;
 }
+
 </declaration>
 		<location id="id0" x="-790" y="-178">
 			<label kind="exponentialrate" x="-800" y="-144">1000</label>
@@ -458,13 +484,13 @@ void setStationPosition(){
 		</location>
 		<location id="id3" x="-892" y="-501">
 			<name x="-902" y="-535">In_Station</name>
-			<label kind="exponentialrate" x="-902" y="-467">1000</label>
+			<label kind="exponentialrate" x="-952" y="-501">1000</label>
 		</location>
 		<init ref="id1"/>
 		<transition>
 			<source ref="id0"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-1037" y="-382">isWaiting() &amp;&amp; !isBlocked()</label>
+			<label kind="guard" x="-1045" y="-382">isWaiting() &amp;&amp; !isBlocked()</label>
 			<label kind="synchronisation" x="-1020" y="-365">entryStation[idStation]?</label>
 			<label kind="assignment" x="-1020" y="-348">setStationPosition()</label>
 		</transition>
@@ -487,8 +513,8 @@ void setStationPosition(){
 		<transition>
 			<source ref="id0"/>
 			<target ref="id2"/>
-			<label kind="guard" x="-705" y="-187">!isWaiting()</label>
-			<label kind="synchronisation" x="-714" y="-153">check?</label>
+			<label kind="guard" x="-722" y="-187">!isWaiting() &amp;&amp; !isBlocked()</label>
+			<label kind="synchronisation" x="-731" y="-153">check?</label>
 		</transition>
 		<transition>
 			<source ref="id1"/>
@@ -581,9 +607,11 @@ bool checkNext(int id){
 			<label kind="exponentialrate" x="-248" y="-51">1000</label>
 		</location>
 		<location id="id9" x="-221" y="-348">
+			<name x="-204" y="-365">CheckNextCell</name>
 			<label kind="exponentialrate" x="-204" y="-340">1000</label>
 		</location>
 		<location id="id10" x="-450" y="68">
+			<name x="-467" y="102">Processing</name>
 			<label kind="invariant" x="-460" y="85">stationClock &lt;= processingTime</label>
 		</location>
 		<location id="id11" x="-229" y="-433">
@@ -674,6 +702,12 @@ void initializeQueue(){
 		</location>
 		<init ref="id16"/>
 		<transition>
+			<source ref="id12"/>
+			<target ref="id14"/>
+			<label kind="guard" x="-595" y="59">getValSensors(id,2)</label>
+			<nail x="-450" y="59"/>
+		</transition>
+		<transition>
 			<source ref="id16"/>
 			<target ref="id15"/>
 			<label kind="synchronisation" x="-1053" y="-170">initializer?</label>
@@ -682,8 +716,8 @@ void initializeQueue(){
 		<transition>
 			<source ref="id14"/>
 			<target ref="id12"/>
-			<label kind="synchronisation" x="-552" y="-17">exitStation[id]?</label>
-			<label kind="assignment" x="-731" y="0">stopped=false,busy=false, resumeStationsGlobal(id)</label>
+			<label kind="guard" x="-331" y="8">!getValSensors(id,2)</label>
+			<label kind="assignment" x="-323" y="34">stopped=false,busy=false, resumeStationsGlobal(id)</label>
 		</transition>
 		<transition>
 			<source ref="id15"/>
@@ -711,7 +745,7 @@ void initializeQueue(){
 		<transition>
 			<source ref="id13"/>
 			<target ref="id14"/>
-			<label kind="guard" x="-110" y="-34">getValSensors(id,2) &amp;&amp; checkPodBlockedInSensor2(id)</label>
+			<label kind="guard" x="-110" y="-17">getValSensors(id,2)</label>
 			<nail x="-119" y="-25"/>
 		</transition>
 		<transition>
@@ -724,7 +758,7 @@ void initializeQueue(){
 		<transition>
 			<source ref="id12"/>
 			<target ref="id13"/>
-			<label kind="guard" x="-552" y="-255">getValSensors(id,1) &amp;&amp; checkPodInPos(POS_SENSOR_1[id],id)</label>
+			<label kind="guard" x="-552" y="-255">getValSensors(id,1) &amp;&amp; station_free[id]</label>
 			<label kind="synchronisation" x="-552" y="-238">entryStation[id]!</label>
 			<label kind="assignment" x="-552" y="-221">busy = true, enter_station(getIdPodInPos(POS_SENSOR_1[id], STATION_BRANCH[id], station_switch[id]))</label>
 			<nail x="-297" y="-195"/>
@@ -759,11 +793,11 @@ bool checkPod(){
 </declaration>
 		<location id="id17" x="-586" y="-195">
 			<name x="-663" y="-204">NoPod</name>
-			<label kind="exponentialrate" x="-663" y="-178">1000</label>
+			<label kind="invariant" x="-680" y="-161">beltClock&lt;=2</label>
 		</location>
 		<location id="id18" x="-85" y="-187">
 			<name x="-68" y="-195">YesPod</name>
-			<label kind="exponentialrate" x="-68" y="-212">1000</label>
+			<label kind="invariant" x="-68" y="-229">beltClock&lt;=2</label>
 		</location>
 		<location id="id19" x="-415" y="9">
 			<name x="-510" y="0">Initialized</name>
@@ -792,6 +826,7 @@ bool checkPod(){
 		<transition>
 			<source ref="id18"/>
 			<target ref="id21"/>
+			<label kind="guard" x="-187" y="-144">beltClock&gt;=2</label>
 		</transition>
 		<transition>
 			<source ref="id17"/>
@@ -800,13 +835,6 @@ bool checkPod(){
 			<label kind="synchronisation" x="-450" y="-331">check?</label>
 			<label kind="assignment" x="-450" y="-314">setValSensors(id,1,true)</label>
 			<nail x="-391" y="-289"/>
-		</transition>
-		<transition>
-			<source ref="id18"/>
-			<target ref="id17"/>
-			<label kind="guard" x="-399" y="-246">!checkPod()</label>
-			<label kind="synchronisation" x="-399" y="-229">check?</label>
-			<label kind="assignment" x="-399" y="-212">setValSensors(id,1,false)</label>
 		</transition>
 		<transition>
 			<source ref="id22"/>
@@ -823,6 +851,7 @@ bool checkPod(){
 		<transition>
 			<source ref="id17"/>
 			<target ref="id22"/>
+			<label kind="guard" x="-569" y="-357">beltClock&gt;=2</label>
 		</transition>
 		<transition>
 			<source ref="id20"/>
@@ -860,10 +889,13 @@ int SecondSensorError;
 
 //Usa le variabili globali per capire se c'è una pod nella sua cella
 void checkPodPresent(int pos){
-    if(checkPodInPos(pos,id)){
-        posPresent = true;
-    } else {
-        posPresent = false;
+    if(pos == -1) posPresent = false;
+    else {
+        if(checkPodInPos(pos,id)){
+            posPresent = true;
+        } else {
+            posPresent = false;
+        }   
     }
 }
 
@@ -871,7 +903,7 @@ void checkPodPresent(int pos){
 void initializeSensor2(){
     checkPodPresent(POS_SENSOR_2[id]);
     SecondSensorError = error_second_sensors[id];
-    initialized = true;
+    if(POS_SENSOR_2[id]!=-1) initialized = true;
 }
 
 bool checkPod(){
@@ -880,11 +912,11 @@ bool checkPod(){
 </declaration>
 		<location id="id23" x="-739" y="-238">
 			<name x="-807" y="-255">NoPod</name>
-			<label kind="exponentialrate" x="-807" y="-238">1000</label>
+			<label kind="invariant" x="-850" y="-238">beltClock&lt;=2</label>
 		</location>
 		<location id="id24" x="-119" y="-221">
 			<name x="-102" y="-230">YesPod</name>
-			<label kind="exponentialrate" x="-102" y="-246">1000</label>
+			<label kind="invariant" x="-102" y="-246">beltClock&lt;=2</label>
 		</location>
 		<location id="id25" x="-544" y="-17">
 			<name x="-562" y="8">Initialized</name>
@@ -913,6 +945,7 @@ bool checkPod(){
 		<transition>
 			<source ref="id24"/>
 			<target ref="id27"/>
+			<label kind="guard" x="-221" y="-178">beltClock&gt;=2</label>
 		</transition>
 		<transition>
 			<source ref="id28"/>
@@ -929,6 +962,7 @@ bool checkPod(){
 		<transition>
 			<source ref="id23"/>
 			<target ref="id28"/>
+			<label kind="guard" x="-722" y="-425">beltClock&gt;=2</label>
 		</transition>
 		<transition>
 			<source ref="id26"/>
@@ -945,7 +979,7 @@ bool checkPod(){
 		<transition>
 			<source ref="id25"/>
 			<target ref="id24"/>
-			<label kind="guard" x="-408" y="-59">posPresent</label>
+			<label kind="guard" x="-408" y="-59">posPresent &amp;&amp; initialized</label>
 			<label kind="synchronisation" x="-391" y="-76">check?</label>
 			<label kind="assignment" x="-408" y="-42">setValSensors(id,2,true)</label>
 		</transition>
@@ -953,7 +987,7 @@ bool checkPod(){
 			<source ref="id24"/>
 			<target ref="id23"/>
 			<label kind="guard" x="-603" y="-195">!checkPod()</label>
-			<label kind="synchronisation" x="-603" y="-178">check?</label>
+			<label kind="synchronisation" x="-603" y="-178">entryStation[id]?</label>
 			<label kind="assignment" x="-603" y="-161">setValSensors(id,2,false)</label>
 			<nail x="-544" y="-195"/>
 		</transition>
@@ -985,7 +1019,7 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>Pr[&lt;=TAU] (&lt;&gt; Pod(0).In_Station)</formula>
+			<formula>Pr[&lt;=TAU] ()</formula>
 			<comment></comment>
 		</query>
 		<query>
@@ -994,6 +1028,14 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
 		</query>
 		<query>
 			<formula>simulate [&lt;=TAU] {Pod(0).current_pos, Pod(0).curr_branch}</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>simulate [&lt;=500] {Pod(4).current_pos, Pod(3).current_pos, Pod(2).current_pos, Pod(1).current_pos, Pod(0).current_pos, Station(0).Processing, Station(0).START, Station(0).Release, Station(0).CheckNextCell, stations_blocked[0] }</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>simulate[&lt;=TAU] {SecondSensor(2).Initialized, stations_blocked[1]}</formula>
 			<comment></comment>
 		</query>
 	</queries>
