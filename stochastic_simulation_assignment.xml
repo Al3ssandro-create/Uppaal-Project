@@ -20,7 +20,7 @@ const int STATION_BRANCH[N_STATION]={0,0,0,0,1,0};
 const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
 const int POS_SENSOR_2[N_STATION] = {1,17,50,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
-const int TAU = 10;
+const int TAU = 300;
 
 /*** CLOCK ***/
 clock beltClock;
@@ -973,15 +973,15 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
     </system>
 	<queries>
 		<query>
-			<formula>Pr[&lt;=100] ([] forall(i:pod_t) forall(j:pod_t) ((Pod(i).current_pos==Pod(j).current_pos &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch &amp;&amp; pods_switch[i]==pods_switch[j]) imply i==j))</formula>
+			<formula>Pr[&lt;=TAU] ([] forall(i:pod_t) forall(j:pod_t) ((Pod(i).current_pos==Pod(j).current_pos &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch &amp;&amp; pods_switch[i]==pods_switch[j]) imply i==j))</formula>
 			<comment></comment>
 		</query>
 		<query>
-			<formula>Pr[&lt;=100] ([] forall(i:pod_t)forall(j:stat_t)((pods_position[i]+1==POS_SENSOR_2[j]) imply !Pod(i).isBlocked()))</formula>
+			<formula>Pr[&lt;=TAU] ([] forall(i:pod_t)forall(j:stat_t)((pods_position[i]+1==POS_SENSOR_2[j]) imply !Pod(i).isBlocked()))</formula>
 			<comment></comment>
 		</query>
 		<query>
-			<formula>Pr[&lt;=100] ([] exists(j : stat_t) !stations_blocked[j])</formula>
+			<formula>Pr[&lt;=TAU] ([] exists(j : stat_t) !stations_blocked[j])</formula>
 			<comment></comment>
 		</query>
 		<query>
@@ -989,7 +989,11 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>simulate [&lt;=500] {Station(0).stationClock, Station(1).stationClock, Station(2).stationClock, Station(3).stationClock, Station(4).stationClock, Station(5).stationClock}</formula>
+			<formula>simulate [&lt;=TAU] {Station(0).stationClock, Station(1).stationClock, Station(2).stationClock, Station(3).stationClock, Station(4).stationClock, Station(5).stationClock}</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>simulate [&lt;=TAU] {Pod(0).current_pos, Pod(0).curr_branch}</formula>
 			<comment></comment>
 		</query>
 	</queries>
