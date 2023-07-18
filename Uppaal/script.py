@@ -78,7 +78,7 @@ maxTimes = [50,100,200]
 # in order to let you stop and continue the script from where you left,
 # you can modify this with the last completed check values
 lastChecked = [0, 0, 0, 0, 0]   # [1, 2, 3, 10, 150]
-timeout = 7 * 60                # seconds: 7 minutes
+timeout = 20 * 60                # seconds: 7 minutes
 if(FLAG == 1):
     with open("dataModels1.csv", "a") as csv:
         csv.write("NumberOfPods,config,maxTime,result\n")
@@ -87,7 +87,6 @@ if(FLAG == 1):
                 config = 0
                 for processingTime in processingTimes:
                     config = config + 1
-                    print(config)
                     for numberOfPodUnit in numberOfPod:
                         branchArray = []
                         switchArray = []
@@ -137,7 +136,6 @@ else:
                 config = 0
                 for processingTime in processingTimes:
                     config = config + 1
-                    print(config)
                     for numberOfPodUnit in numberOfPod:
                         branchArray = []
                         switchArray = []
