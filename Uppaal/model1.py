@@ -15,14 +15,15 @@ int station_switch[N_STATION]={{-1,-1,0,0,-1,-1}};
 const int NUM_BRANCH[NUM_SWITCH] ={{1}};
 const int PODS_BRANCH[NUM_PODS]={placeholder3};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{{{12}}}};
-const int SWITCH[NUM_SWITCH] = {{1}}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
-const int STATION_POSITION[N_STATION]={{13,28,52,59,63,72}};
+const int SWITCH[NUM_SWITCH] = {{1}}; 
 const int STATION_BRANCH[N_STATION]={{0,0,1,1,0,0}};
-const int POS_SENSOR_1[N_STATION] = {{12,27,51,58,62,71}};
-const int POS_SENSOR_2[N_STATION] = {{1,17,-1,54,54,69}};
+const int STATION_POSITION[N_STATION]={{13,28,53,59,63,72}};
+const int POS_SENSOR_1[N_STATION] = {{12,27,52,58,62,71}};
+const int POS_SENSOR_2[N_STATION] = {{1,17,-1,55,54,69}};
 const int POSITION_END_BRANCH[NUM_SWITCH]={{16}};
-const int SPEED_CONVEYOR_BELT ={placeholder2};
 const int STATION_PROCESSING_TIME[N_STATION]={placeholder6};
+const int speedConveyorBelt={placeholder2};
+const int MAX={placeholder7};
 
 /*** CLOCK ***/
 clock beltClock;
@@ -39,8 +40,8 @@ int pods_position[NUM_PODS];
 int pods_branch[NUM_PODS]; 
 bool pods_blocked[NUM_PODS];
 bool stations_blocked[N_STATION];
-
-
+int pods_position_sorted[NUM_PODS]; //It has all the pods position sorted in modo crescente, it used in the last query
+int countHowManyCompleted=0;
 
 bool station_free[N_STATION]={{true,true,true,true,true,true}};
 bool valSensors[N_STATION][2];
@@ -94,6 +95,28 @@ void updateCurrentPositionGlobal(int id){{
          if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pods_position[id] + 1;
          else pods_position[id]=0;
 }}
+
+void sortPodsPosition(){{
+      int i,j,d=0;
+    for(d=0;d&lt;NUM_PODS;d++){{
+       pods_position_sorted[d]=pods_position[d];
+        }}
+    for ( i = 0; i &lt; NUM_PODS - 1; i++) {{
+        int minIndex = i;
+        for ( j = i + 1; j &lt; NUM_PODS; j++) {{
+            if (pods_position_sorted[j] &lt; pods_position_sorted[minIndex]) {{
+                minIndex = j;
+            }}
+        }}
+        if (minIndex != i) {{
+            // Scambia gli elementi arr[i] e arr[minIndex]
+            int temp = pods_position_sorted[i];
+            pods_position_sorted[i] = pods_position_sorted[minIndex];
+            pods_position_sorted[minIndex] = temp;
+        }}
+    }}
+ }}
+
 
 int getIdPodInPos(int pos, int branch, int switch){{
     int i;
@@ -253,11 +276,11 @@ bool otherBranchNotEndedGlobal(int id){{
     for(i = 0; i &lt; NUM_PODS; i++){{
 //questo idf viene fatto perchè alcune pod aggiornano la propria posizione prima di altre per cui questo if dovrebbe risolvere le cose
         if(id&lt; i){{
-            if(pods_position[i]+1 == POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){{
+            if(pods_position[i]+1 == SWITCH_POS[0] + POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){{
                return false;
                 }}
         }}else if(id&gt;i){{
-             if( pods_position[i] == POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){{
+             if( pods_position[i] == SWITCH_POS[0] + POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){{
                return false;
              }}
         }}
@@ -289,7 +312,7 @@ int idStation = -1;
 
 int curr_branch = PODS_BRANCH[id];
 int current_pos=  POS_POD[id];
-
+clock clockPod;
 
 
 bool isReady(){{
@@ -383,10 +406,10 @@ void updateCurrentPosition(){{
             curr_branch = 0;
             pods_switch[id] = -1;
             checkBlockedGlobal();
-            counter=10;
+           
 
     }}else if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; !otherBranchNotEndedGlobal(id)){{
-             counter=16;
+            
      }}else if(current_pos != MAX_POSITION-1  ){{
             current_pos= current_pos + 1;
             updateCurrentPositionGlobal(id);
@@ -397,6 +420,7 @@ void updateCurrentPosition(){{
       
             }}else{{
             current_pos=0;
+            if(countHowManyCompleted&lt;NUM_PODS) countHowManyCompleted++;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
             //checkStation();
@@ -440,7 +464,7 @@ void setStationPosition(){{
 		</location>
 		<location id="id3" x="-892" y="-501">
 			<name x="-902" y="-535">In_Station</name>
-			<label kind="invariant" x="-918" y="-569">beltClock &lt;=2</label>
+			<label kind="invariant" x="-918" y="-569">beltClock &lt;=speedConveyorBelt</label>
 		</location>
 		<init ref="id1"/>
 		<transition>
@@ -488,12 +512,13 @@ void setStationPosition(){{
 
 </declaration>
 		<location id="id4" x="-518" y="-144">
-			<label kind="invariant" x="-528" y="-127">beltClock&lt;=1</label>
+			<label kind="invariant" x="-646" y="-51">beltClock&lt;=speedConveyorBelt/2</label>
 		</location>
 		<location id="id5" x="-722" y="-144">
 		</location>
 		<location id="id6" x="-357" y="-144">
-			<label kind="invariant" x="-367" y="-127">beltClock&gt;=1 &amp;&amp; beltClock&lt;=2</label>
+			<label kind="invariant" x="-367" y="-127">beltClock&gt;=speedConveyorBelt/2 
+&amp;&amp; beltClock&lt;=speedConveyorBelt</label>
 		</location>
 		<init ref="id5"/>
 		<transition>
@@ -505,7 +530,7 @@ void setStationPosition(){{
 		<transition>
 			<source ref="id6"/>
 			<target ref="id4"/>
-			<label kind="guard" x="-561" y="-306">beltClock==2</label>
+			<label kind="guard" x="-561" y="-306">beltClock==speedConveyorBelt</label>
 			<label kind="synchronisation" x="-561" y="-289">move!</label>
 			<label kind="assignment" x="-561" y="-272">beltClock:=0</label>
 			<nail x="-442" y="-246"/>
@@ -530,6 +555,10 @@ int count=1;
 /*
  *    Check whether the station is free
  */
+void TESTchangeProcessingTime(){{
+    if(id==0)
+        processing_time=20;
+}}
 bool isFree(){{
     if (station_free[id]==true)
         return true;
@@ -552,13 +581,15 @@ bool checkNext(int id){{
     int pod_id = station_pod[id].idPod;
     return checkSamePositionGlobal(pod_id);
 }}
-void initialize(){{
-    processing_time= STATION_PROCESSING_TIME[id];
-}}
 
+void initializeStation(){{
+    processing_time= STATION_PROCESSING_TIME[id];
+
+    }}
 
 </declaration>
 		<location id="id7" x="-629" y="-34">
+			<name x="-706" y="-42">START</name>
 		</location>
 		<location id="id8" x="-238" y="-85">
 			<name x="-272" y="-119">Release</name>
@@ -572,20 +603,19 @@ void initialize(){{
 		<location id="id11" x="-229" y="-433">
 			<urgent/>
 		</location>
-		<location id="id12" x="-935" y="-42">
-			<name x="-945" y="-76">START</name>
+		<location id="id12" x="-909" y="-51">
 		</location>
-		<init ref="id12"/>
+		<init ref="id7"/>
 		<transition>
 			<source ref="id12"/>
 			<target ref="id7"/>
-			<label kind="synchronisation" x="-850" y="-68">initializer?</label>
-			<label kind="assignment" x="-917" y="-38">initialize()</label>
+			<label kind="synchronisation" x="-891" y="-59">initializer?</label>
+			<label kind="assignment" x="-891" y="-42">initializeStation()</label>
 		</transition>
 		<transition>
 			<source ref="id10"/>
 			<target ref="id8"/>
-			<label kind="guard" x="-510" y="-59">stationClock==processing_time</label>
+			<label kind="guard" x="-331" y="0">stationClock&gt;=processing_time</label>
 		</transition>
 		<transition>
 			<source ref="id11"/>
@@ -603,7 +633,7 @@ void initialize(){{
 			<target ref="id10"/>
 			<label kind="guard" x="-952" y="-8">isFree()</label>
 			<label kind="synchronisation" x="-952" y="17">entryStation[id]?</label>
-			<label kind="assignment" x="-952" y="42">stationClock:=0 , station_free[id]=false</label>
+			<label kind="assignment" x="-952" y="42">stationClock:=0 , station_free[id]=false, TESTchangeProcessingTime()</label>
 		</transition>
 		<transition>
 			<source ref="id9"/>
@@ -658,7 +688,7 @@ void initializeQueue(){{
 		</location>
 		<location id="id14" x="-25" y="-136">
 			<name x="34" y="-170">Busy</name>
-			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;=2</label>
+			<label kind="invariant" x="34" y="-144">busy == true &amp;&amp;  beltClock&lt;=speedConveyorBelt</label>
 		</location>
 		<location id="id15" x="-255" y="136">
 			<name x="-230" y="128">StopStationBefore</name>
@@ -747,6 +777,14 @@ system Pod,Station,Queue, Process;
 		</query>
 		<query>
 			<formula>A[] exists(j : stat_t) !stations_blocked[j]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=MAX || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] forall(s:stat_t ) forall(j:pod_t) forall(i:pod_t) ((Pod(i).current_pos==Pod(j).current_pos==STATION_POSITION[s] &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch==STATION_BRANCH[s]) imply i==j)</formula>
 			<comment></comment>
 		</query>
 		<query>
