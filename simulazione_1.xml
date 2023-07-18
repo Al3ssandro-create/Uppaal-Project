@@ -22,7 +22,7 @@ const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
 const int POS_SENSOR_2[N_STATION] = {1,17,-1,54,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
 const int STATION_PROCESSING_TIME[N_STATION]={10,15,20,15,15,20};
-const int speedConveyorBelt=1;
+const int speedConveyorBelt=2;
 
 int countHowManyCompleted=0;
 /*** CLOCK ***/
@@ -297,11 +297,11 @@ bool otherBranchNotEndedGlobal(int id){
     for(i = 0; i &lt; NUM_PODS; i++){
 //questo idf viene fatto perchè alcune pod aggiornano la propria posizione prima di altre per cui questo if dovrebbe risolvere le cose
         if(id&lt; i){
-            if(pods_position[i]+1 == POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
+            if(pods_position[i]+1 == SWITCH_POS[0]+ POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
                return false;
                 }
         }else if(id&gt;i){
-             if( pods_position[i] == POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
+             if( pods_position[i] == SWITCH_POS[0]+ POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
                return false;
              }
         }
