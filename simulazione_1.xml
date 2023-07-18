@@ -23,6 +23,7 @@ const int POS_SENSOR_2[N_STATION] = {1,17,-1,55,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
 const int STATION_PROCESSING_TIME[N_STATION]={10,15,20,10,5,60};
 const int speedConveyorBelt=2;
+const int MAX=200;
 
 /*** CLOCK ***/
 clock beltClock;
@@ -779,7 +780,7 @@ system Pod,Station,Queue, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=2150 || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
+			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=MAX || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
 			<comment></comment>
 		</query>
 		<query>
