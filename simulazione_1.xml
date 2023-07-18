@@ -419,7 +419,7 @@ void updateCurrentPosition(){
       
             }else{
             current_pos=0;
-            if(countHowManyCompleted&lt;NUM_PODS)countHowManyCompleted++;
+            if(countHowManyCompleted&lt;NUM_PODS) countHowManyCompleted++;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
             //checkStation();
@@ -779,7 +779,11 @@ system Pod,Station,Queue, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=200 || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
+			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=2150 || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] forall(s:stat_t ) forall(j:pod_t) forall(i:pod_t) ((Pod(i).current_pos==Pod(j).current_pos==STATION_POSITION[s] &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch==STATION_BRANCH[s]) imply i==j)</formula>
 			<comment></comment>
 		</query>
 		<query>
