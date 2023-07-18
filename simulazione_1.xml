@@ -2,7 +2,7 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
 <nta>
 	<declaration>///Constants
-const int MAX_POSITION = 74;
+const int MAX_POSITION = 73;
 const int NUM_PODS = 5;
 const int NUM_SWITCH = 1;
 const int N_STATION = 6;
@@ -16,10 +16,10 @@ const int NUM_BRANCH[NUM_SWITCH] ={1};
 const int PODS_BRANCH[NUM_PODS]={0,0,0,0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
 const int SWITCH[NUM_SWITCH] = {1}; //TODO: va bene così?Leggendo le specifiche si, ma dobbiamo decidere assieme se farlo cambiare o meno
-const int STATION_POSITION[N_STATION]={13,28,52,59,63,72};
+const int STATION_POSITION[N_STATION]={13,28,53,59,63,72};
 const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
-const int POS_SENSOR_1[N_STATION] = {12,27,51,58,62,71};
-const int POS_SENSOR_2[N_STATION] = {1,17,-1,54,54,69};
+const int POS_SENSOR_1[N_STATION] = {12,27,52,58,62,71};
+const int POS_SENSOR_2[N_STATION] = {1,17,-1,55,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
 const int STATION_PROCESSING_TIME[N_STATION]={10,15,20,15,15,20};
 const int speedConveyorBelt=2;
