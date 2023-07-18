@@ -16,12 +16,12 @@ const int NUM_BRANCH[NUM_SWITCH] ={1};
 const int PODS_BRANCH[NUM_PODS]={0,0,0,0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
 const int SWITCH[NUM_SWITCH] = {1}; 
-const int STATION_POSITION[N_STATION]={13,28,52,59,63,72};
+const int STATION_POSITION[N_STATION]={13,28,53,59,63,72};
 const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
-const int POS_SENSOR_1[N_STATION] = {12,27,54,58,62,71};
-const int POS_SENSOR_2[N_STATION] = {1,17,-1,54,54,69};
+const int POS_SENSOR_1[N_STATION] = {12,27,52,58,62,71};
+const int POS_SENSOR_2[N_STATION] = {1,17,-1,55,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
-const int STATION_PROCESSING_TIME[N_STATION]={1,3,5,20,3,3};
+const int STATION_PROCESSING_TIME[N_STATION]={2,2,30,30,6,4};
 const int speedConveyorBelt=2;
 
 
@@ -325,8 +325,15 @@ bool checkSamePositionGlobal(int pod_id){
 }
 
 bool queueIsMaximumInSwitch(){
-        
-    }</declaration>
+    int i=0;
+    bool pos52=false;
+    bool pos51=false;
+    for(i=0; i&lt;NUM_PODS;i++){
+        if(pods_position[i] == 52 &amp;&amp; pods_branch[i]==1) pos52=true;
+        if(pods_position[i] == 51 &amp;&amp; pods_branch[i]==1) pos51=true;
+        }
+    return pos52 &amp;&amp; pos51;
+ }</declaration>
 	<template>
 		<name>Pod</name>
 		<parameter>const pod_t id</parameter>
@@ -499,7 +506,7 @@ void setStationPosition(){
 		</location>
 		<location id="id3" x="-892" y="-501">
 			<name x="-902" y="-535">In_Station</name>
-			<label kind="invariant" x="-918" y="-569">beltClock &lt;=2</label>
+			<label kind="invariant" x="-918" y="-569">beltClock &lt;=speedConveyorBelt</label>
 		</location>
 		<init ref="id1"/>
 		<transition>
@@ -816,7 +823,7 @@ system Pod,Station,Queue, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=200 || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
+			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=50 || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
 			<comment></comment>
 		</query>
 		<query>
