@@ -68,12 +68,12 @@ typedef struct{
     int variance;
 } Station_Distribution;
 const Station_Distribution station_dis[N_STATION] = {
-    {400,1},
-    {400,1},
-    {700,2},
-    {800,4},
-    {1270,1},
-    {240,4}
+    {400,50},
+    {400,80},
+    {700,200},
+    {800,100},
+    {1270,333},
+    {240,48}
 };
 
 /*** CHANNELS ***/
