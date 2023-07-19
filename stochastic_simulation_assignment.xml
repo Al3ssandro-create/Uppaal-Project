@@ -2,13 +2,13 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
 <nta>
 	<declaration>///Constants
-const int MAX_POSITION = 74;
+const int MAX_POSITION = 73;
 const int NUM_PODS = 12;
 const int NUM_SWITCH = 1;
 const int N_STATION = 6;
 const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
-const int POS_POD[NUM_PODS]={0,1,2,3,4,5,6,7,8,9,10,11};
+const int POS_POD[NUM_PODS]={1,2,3,4,5,6,7,8,9,10,11,12};
 const int previousStations[N_STATION][N_STATION] = {{0,0,0,0,0,1}, {1,0,0,0,0,0},{0,1,0,0,0,0}, {0,0,1,0,0,0},{0,1,0,0,0,0},{0,0,0,1,1,0}};
 const int SWITCH_POS[NUM_SWITCH]={50};
 const int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
@@ -43,6 +43,7 @@ int pods_branch[NUM_PODS];
 bool pods_blocked[NUM_PODS];
 bool stations_blocked[N_STATION];
 int countHowManyCompleted=0;
+int pods_completed[NUM_PODS] = {0,0,0,0,0,0,0,0,0,0,0,0};
 
 
 
@@ -87,7 +88,6 @@ broadcast chan StopStations[N_STATION];
 
 /*** GLOBAL UTILITY FUNCTIONS ************************************************/
 
-
 void initialize(){
     int i;
     for(i=0;i&lt;NUM_PODS;i++){
@@ -102,7 +102,6 @@ void initialize(){
     for(i=0;i&lt;N_STATION;i++){
        station_pod[i].exit1 = false;
     }
-
 }
 
 int getIdPodInPos(int pos, int branch, int switch){
@@ -480,6 +479,7 @@ void updateCurrentPosition(){
             current_pos=0;
 			clockPod=0;
             countHowManyCompleted++;
+            pods_completed[id] = 1;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
             //checkStation();
@@ -510,6 +510,7 @@ void initializePod(){
     checkWaiting();
     checkStation();
     checkBlocked();
+    checkBlockedGlobal();
 }
 
 void setStationPosition(){
@@ -844,11 +845,11 @@ bool checkPod(){
 </declaration>
 		<location id="id17" x="-586" y="-195">
 			<name x="-663" y="-204">NoPod</name>
-			<label kind="invariant" x="-680" y="-161">beltClock&lt;=2</label>
+			<label kind="invariant" x="-824" y="-187">beltClock&lt;=speedConveyorBelt</label>
 		</location>
 		<location id="id18" x="-85" y="-187">
 			<name x="-68" y="-195">YesPod</name>
-			<label kind="invariant" x="-68" y="-229">beltClock&lt;=2</label>
+			<label kind="invariant" x="-68" y="-229">beltClock&lt;=speedConveyorBelt</label>
 		</location>
 		<location id="id19" x="-415" y="9">
 			<name x="-510" y="0">Initialized</name>
@@ -1070,6 +1071,14 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
 			<comment></comment>
 		</query>
 		<query>
+			<formula>Pr[&lt;=TAU] (&lt;&gt; forall(i:pod_t)(pods_completed[i]==1))</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>Pr[&lt;=TAU] ([] forall(j:stat_t)(stations_blocked[j]) imply exists(i:pod_t) !Pod(i).isBlocked() || !Pod(i).isWaiting())</formula>
+			<comment></comment>
+		</query>
+		<query>
 			<formula>simulate [&lt;=TAU] {Station(0).stationClock, Station(1).stationClock, Station(2).stationClock, Station(3).stationClock, Station(4).stationClock, Station(5).stationClock}</formula>
 			<comment></comment>
 		</query>
@@ -1078,11 +1087,15 @@ system Pod,Station,Queue,FirstSensor,SecondSensor, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>simulate [&lt;=TAU] {Pod(4).current_pos, Pod(3).current_pos, Pod(2).current_pos, Pod(1).current_pos, Pod(0).current_pos,Pod(4).curr_branch, Pod(3).curr_branch, Pod(2).curr_branch, Pod(1).curr_branch, Pod(0).curr_branch, Station(0).Processing, Station(0).START, Station(0).Release, Station(0).CheckNextCell, stations_blocked[0], station_free[0] }</formula>
+			<formula>simulate [&lt;=450] {Pod(0).current_pos, Pod(0).curr_branch, Pod(0).waiting, Station(0).Processing, Station(0).START, Station(0).Release, Station(0).CheckNextCell, stations_blocked[0], station_free[0] }</formula>
 			<comment></comment>
 		</query>
 		<query>
 			<formula>simulate[&lt;=TAU] {stations_blocked[0], stations_blocked[1], stations_blocked[2], stations_blocked[3], stations_blocked[4], stations_blocked[5]}</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>simulate[&lt;=TAU] {forall(i:pod_t)(pods_completed[i]==1)}</formula>
 			<comment></comment>
 		</query>
 	</queries>
