@@ -2,28 +2,30 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
 <nta>
 	<declaration>///Constants
-const int MAX_POSITION = 74;
-const int NUM_PODS = 4;
+const int MAX_POSITION = 73;
+const int NUM_PODS = 2;
 const int NUM_SWITCH = 1;
 const int N_STATION = 6;
 const int STATION_VARIANCE = 1;
 const int STATION_MEAN = 2;
-const int POS_POD[NUM_PODS]={0,1,2,3};
+const int POS_POD[NUM_PODS]={0,1};
 const int previousStations[N_STATION][N_STATION] = {{0,0,0,0,0,1}, {1,0,0,0,0,0},{0,1,0,0,0,0}, {0,0,1,0,0,0},{0,1,0,0,0,0},{0,0,0,1,1,0}};
 const int SWITCH_POS[NUM_SWITCH]={50};
-int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
+const int station_switch[N_STATION]={-1,-1,0,0,-1,-1};
 const int NUM_BRANCH[NUM_SWITCH] ={1};
-const int PODS_BRANCH[NUM_PODS]={0,0,0,0};
+const int PODS_BRANCH[NUM_PODS]={0,0};
 const int LENGTH_BRANCH[NUM_SWITCH][1]={{12}};
-const int SWITCH[NUM_SWITCH] = {1}; 
-const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
+const int SWITCH[NUM_SWITCH] = {1};
 const int STATION_POSITION[N_STATION]={13,28,53,59,63,72};
+const int STATION_BRANCH[N_STATION]={0,0,1,1,0,0};
 const int POS_SENSOR_1[N_STATION] = {12,27,52,58,62,71};
 const int POS_SENSOR_2[N_STATION] = {1,17,-1,55,54,69};
 const int POSITION_END_BRANCH[NUM_SWITCH]={16};
-const int STATION_PROCESSING_TIME[N_STATION]={10,15,20,10,5,60};
+const int STATION_PROCESSING_TIME[N_STATION]={10,15,20,10,5,10};
 const int speedConveyorBelt=2;
-const int MAX=200;
+const int MINIMUM_TIME=300;
+const int MAXIMUM_TIME=400;
+
 
 /*** CLOCK ***/
 clock beltClock;
@@ -34,19 +36,17 @@ typedef int[0,N_STATION-1] stat_t;
 typedef int [0,N_STATION-1] queue_t;
 
 /*** GLOBAL VARIABLES***/
-int pods_switch[NUM_PODS]={-1,-1,-1,-1};
+int pods_switch[NUM_PODS]={-1,-1};
 int pos_Id_Station[NUM_PODS];
 int pods_position[NUM_PODS];
+int pods_position_sorted[NUM_PODS]; 
 int pods_branch[NUM_PODS]; 
 bool pods_blocked[NUM_PODS];
 bool stations_blocked[N_STATION];
-int pods_position_sorted[NUM_PODS]; //It has all the pods position sorted in modo crescente, it used in the last query
-int countHowManyCompleted=0;
-
 bool station_free[N_STATION]={true,true,true,true,true,true};
 bool valSensors[N_STATION][2];
-
-int counter=0; //it is used to select the id to go in the branch
+int counter=0;
+int countHowManyCompleted=0;
 
 //Tiene traccia del binomio pods_station quando la pods entra nella stazione
 typedef struct{
@@ -85,15 +85,20 @@ void initialize(){
     }
 
 }
-//this method is called at the end of the branch when the pods needs to be ricongiunta on the main branch
-void updateCurrentPositionAfterBranchGlobal(int id,int pos_end_branch){
-       if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pos_end_branch;
-       else pods_position[id]=0;
-}
-// aggiorna la posizione aggiungendo 1, chiamato dalla pods quando avanza 
-void updateCurrentPositionGlobal(int id){
-         if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pods_position[id] + 1;
-         else pods_position[id]=0;
+void blockNextIfPresent(int id){
+    int i;
+    bool flag;
+    flag = true;
+    while(flag){
+        flag = false;
+        for(i = 0; i &lt; NUM_PODS; i++){
+            if(pods_position[i] == pods_position[id]-1 &amp;&amp; pods_branch[i] == pods_branch[id] &amp;&amp; pods_switch[i]== pods_switch[id]){
+                pods_blocked[i]=true;
+                flag = true;
+                id = i;
+            }
+        }
+    }
 }
 
 void sortPodsPosition(){
@@ -117,6 +122,20 @@ void sortPodsPosition(){
     }
  }
 
+//this method is called at the end of the branch when the pods needs to be ricongiunta on the main branch
+void updateCurrentPositionAfterBranchGlobal(int id,int pos_end_branch){
+       if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pos_end_branch;
+       else pods_position[id]=0;
+    
+    sortPodsPosition();
+}
+
+void updateCurrentPositionGlobal(int id){
+         if(pods_position[id]!=MAX_POSITION-1) pods_position[id]=pods_position[id] + 1;
+         else pods_position[id]=0;
+
+     sortPodsPosition();
+}
 
 int getIdPodInPos(int pos, int branch, int switch){
     int i;
@@ -133,7 +152,10 @@ void checkBlockedGlobal(){
     }
     for(j=0; j&lt;N_STATION; j++){
         for(i=0; i&lt;NUM_PODS; i++){
-            if(pods_position[i]+1 == POS_SENSOR_1[j] &amp;&amp; pods_branch[i] == STATION_BRANCH[j]  &amp;&amp; getIdPodInPos(pods_position[i]+1, pods_branch[i], pods_switch[i]) != -1 )  pods_blocked[i]=true;
+            if(pods_position[i]+1 == POS_SENSOR_1[j] &amp;&amp; pods_branch[i] == STATION_BRANCH[j]  &amp;&amp; getIdPodInPos(pods_position[i]+1, pods_branch[i], pods_switch[i]) != -1 ){
+                  pods_blocked[i]=true;
+                  blockNextIfPresent(i);
+            }
         }
     }
 }
@@ -142,8 +164,7 @@ void setValSensors(int index, int pos, bool value){
     valSensors[index][pos-1]=value;
 }
 
-//quando la pods entra nella stazione viene aggiornata la struttura dati utilizzata per tenere traccia delle pods nelle stazioni7
-//TODO: ma se la station sta subito dopo lo switch?
+
 void enter_station(int id){ 
     int i,index;
     for(i=0;i&lt;N_STATION;i++){
@@ -158,7 +179,7 @@ void enter_station(int id){
 }
  
 
-//chiamata dalla pods, controlla se la stazione in cui è la pods è libera, se è così ritorna true altrimenti ritorna false
+
 bool checkExitStation(int id){
     int i;
     for(i=0;i&lt;N_STATION;i++){
@@ -269,18 +290,17 @@ void resumeStationsGlobal(int id){
     }
 }
 
-//Questo dovrebbe controllare se non c'è una pods nella branch principale
+
 bool otherBranchNotEndedGlobal(int id){
     bool result = true; 
     int i;
     for(i = 0; i &lt; NUM_PODS; i++){
-//questo idf viene fatto perchè alcune pod aggiornano la propria posizione prima di altre per cui questo if dovrebbe risolvere le cose
         if(id&lt; i){
-            if(pods_position[i]+1 == SWITCH_POS[0] + POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
+            if(pods_position[i]+1 == SWITCH_POS[0]+ POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
                return false;
                 }
         }else if(id&gt;i){
-             if( pods_position[i] == SWITCH_POS[0] + POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
+             if( pods_position[i] == SWITCH_POS[0]+ POSITION_END_BRANCH[pods_branch[id]-1] &amp;&amp; pods_branch[id]!=pods_branch[i]){
                return false;
              }
         }
@@ -300,19 +320,31 @@ bool checkSamePositionGlobal(int pod_id){
     }
     return result;
 }
-</declaration>
+
+bool queueIsMaximumInSwitch(){
+    int i=0;
+    bool pos52=false;
+    bool pos51=false;
+    for(i=0; i&lt;NUM_PODS;i++){
+        if(pods_position[i] == 52 &amp;&amp; pods_branch[i]==1) pos52=true;
+        if(pods_position[i] == 51 &amp;&amp; pods_branch[i]==1) pos51=true;
+        }
+    return pos52 &amp;&amp; pos51;
+}</declaration>
 	<template>
 		<name>Pod</name>
 		<parameter>const pod_t id</parameter>
-		<declaration>//true because we suppose you are ready and set to false if check go wrong
-bool ready = true;
+		<declaration>bool ready = true;
 bool waiting = false;
 bool station = false;
 int idStation = -1;
 
+clock clockPod;
+
+
 int curr_branch = PODS_BRANCH[id];
 int current_pos=  POS_POD[id];
-clock clockPod;
+
 
 
 bool isReady(){
@@ -367,11 +399,12 @@ void checkBlocked(){
         || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPodInPos(0,-1) &amp;&amp; checkPodBlockedInPos(0,0,-1)) 
         || (pods_position[id] == MAX_POSITION-1 &amp;&amp; checkPosIsSensor1(0,0) &amp;&amp; checkPodInPos(0,-1) &amp;&amp; station_free[getIdStationQueue(0,0)]==false) //TODO: checkPosIsSensor1 deve controllare sul branch 0 ?
         || checkPosIsSensor1(pods_position[id]+1, pods_branch[id]) &amp;&amp; checkGlobalPosOccupied(pods_position[id]+1, pods_branch[id]) &amp;&amp;  station_free[getIdStationQueue(pods_position[id]+1,pods_branch[id])]==false 
-        ) 
+        ) {
 
             pods_blocked[id] = true;
+            blockNextIfPresent(id);
 
-    else     pods_blocked[id] = false;
+    } else{     pods_blocked[id] = false;}
 }
 
 bool isWaiting(){
@@ -392,46 +425,41 @@ void checkStation(){
 }
 
 
-//TODO: se la branch finisce quando c'è una stazione non vengono aggiornati le branch
+
 
 void updateCurrentPosition(){
     int i; 
-
     checkBlocked();
     if(!pods_blocked[id]){
-// controlla se si è alla fine del branch e se sull'altro branch non arriva un altro pod allo stesso momento
         if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; otherBranchNotEndedGlobal(id)){ //TODO: calcoli giusti? otherBranchNotEnded lo implementiamo in checkBlocked?
             current_pos = SWITCH_POS[pods_switch[id]]+ POSITION_END_BRANCH[curr_branch-1];
             updateCurrentPositionAfterBranchGlobal(id, SWITCH_POS[pods_switch[id]]+ POSITION_END_BRANCH[curr_branch-1]);
             curr_branch = 0;
             pods_switch[id] = -1;
             checkBlockedGlobal();
-           
-
     }else if(pods_switch[id] != -1 &amp;&amp; current_pos - SWITCH_POS[pods_switch[id]] == LENGTH_BRANCH[pods_switch[id]][curr_branch-1] &amp;&amp; !otherBranchNotEndedGlobal(id)){
-            
+             //DO NOTHING...
      }else if(current_pos != MAX_POSITION-1  ){
             current_pos= current_pos + 1;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
-            //checkStation();
-
-    // sei alla max position e ricominci il loop
-      
-            }else{
+     }else{
             current_pos=0;
+            clockPod=0;
             if(countHowManyCompleted&lt;NUM_PODS) countHowManyCompleted++;
             updateCurrentPositionGlobal(id);
             checkBlockedGlobal();
-            //checkStation();
+            
         }
 //assegno la branch se sono nella posizione dello switch e se sono = al countrer
         for(i = 0; i &lt; NUM_SWITCH ; i++){
             if(SWITCH_POS[i] == current_pos-1 &amp;&amp; id==counter){
+               if(!queueIsMaximumInSwitch()){
                 curr_branch = SWITCH[i];
                 pods_switch[id] = i;
                 if(counter&lt;NUM_PODS-1)counter++;
                     else counter=0;
+            }
             }
         }    
         pods_branch[id]=curr_branch;
@@ -443,7 +471,7 @@ void freeBlocked(){
     pods_blocked[id] = false;
 }
 
-void initilaize(){
+void initializePod(){
     checkWaiting();
     checkStation();
     checkBlocked();
@@ -500,7 +528,7 @@ void setStationPosition(){
 			<source ref="id1"/>
 			<target ref="id0"/>
 			<label kind="synchronisation" x="-935" y="-204">initializer?</label>
-			<label kind="assignment" x="-993" y="-182">initilaize()</label>
+			<label kind="assignment" x="-952" y="-178">initializePod()</label>
 		</transition>
 	</template>
 	<template>
@@ -512,19 +540,19 @@ void setStationPosition(){
 
 </declaration>
 		<location id="id4" x="-518" y="-144">
-			<label kind="invariant" x="-646" y="-51">beltClock&lt;=speedConveyorBelt/2</label>
+			<label kind="invariant" x="-654" y="-110">beltClock&lt;=speedConveyorBelt/2</label>
 		</location>
 		<location id="id5" x="-722" y="-144">
 		</location>
 		<location id="id6" x="-357" y="-144">
-			<label kind="invariant" x="-367" y="-127">beltClock&gt;=speedConveyorBelt/2 
-&amp;&amp; beltClock&lt;=speedConveyorBelt</label>
+			<label kind="invariant" x="-367" y="-127">beltClock&gt;=speedConveyorBelt/2
+ &amp;&amp; beltClock&lt;=speedConveyorBelt</label>
 		</location>
 		<init ref="id5"/>
 		<transition>
 			<source ref="id4"/>
 			<target ref="id6"/>
-			<label kind="guard" x="-500" y="-178">beltClock==1</label>
+			<label kind="guard" x="-500" y="-178">beltClock==speedConveyorBelt/2</label>
 			<label kind="synchronisation" x="-459" y="-144">check!</label>
 		</transition>
 		<transition>
@@ -547,18 +575,13 @@ void setStationPosition(){
 		<name x="5" y="5">Station</name>
 		<parameter>const stat_t id</parameter>
 		<declaration>double mean,variance;
-int processing_time=1;// (real processing time is 4) dobbiamo metterlo qua il processing time perchè mi ha dato un sacco di problemi
+int processing_time=0;
 bool free = true;
 clock stationClock;
 int count=1;
 
-/*
- *    Check whether the station is free
- */
-void TESTchangeProcessingTime(){
-    if(id==0)
-        processing_time=20;
-}
+
+
 bool isFree(){
     if (station_free[id]==true)
         return true;
@@ -588,8 +611,7 @@ void initializeStation(){
     }
 
 </declaration>
-		<location id="id7" x="-629" y="-34">
-			<name x="-706" y="-42">START</name>
+		<location id="id7" x="-705" y="-34">
 		</location>
 		<location id="id8" x="-238" y="-85">
 			<name x="-272" y="-119">Release</name>
@@ -603,19 +625,20 @@ void initializeStation(){
 		<location id="id11" x="-229" y="-433">
 			<urgent/>
 		</location>
-		<location id="id12" x="-909" y="-51">
+		<location id="id12" x="-960" y="-51">
+			<name x="-970" y="-85">START</name>
 		</location>
-		<init ref="id7"/>
+		<init ref="id12"/>
 		<transition>
 			<source ref="id12"/>
 			<target ref="id7"/>
-			<label kind="synchronisation" x="-891" y="-59">initializer?</label>
-			<label kind="assignment" x="-891" y="-42">initializeStation()</label>
+			<label kind="synchronisation" x="-884" y="-76">initializer?</label>
+			<label kind="assignment" x="-867" y="-42">initializeStation()</label>
 		</transition>
 		<transition>
 			<source ref="id10"/>
 			<target ref="id8"/>
-			<label kind="guard" x="-331" y="0">stationClock&gt;=processing_time</label>
+			<label kind="guard" x="-357" y="0">stationClock&gt;=processing_time</label>
 		</transition>
 		<transition>
 			<source ref="id11"/>
@@ -633,7 +656,7 @@ void initializeStation(){
 			<target ref="id10"/>
 			<label kind="guard" x="-952" y="-8">isFree()</label>
 			<label kind="synchronisation" x="-952" y="17">entryStation[id]?</label>
-			<label kind="assignment" x="-952" y="42">stationClock:=0 , station_free[id]=false, TESTchangeProcessingTime()</label>
+			<label kind="assignment" x="-952" y="42">stationClock:=0 , station_free[id]=false</label>
 		</transition>
 		<transition>
 			<source ref="id9"/>
@@ -757,9 +780,7 @@ void initializeQueue(){
 			<nail x="-297" y="-195"/>
 		</transition>
 	</template>
-	<system>// Place template instantiations here.
-Process = Belt_Handler();
-// List one or more processes to be composed into a system.
+	<system>Process = Belt_Handler();
 system Pod,Station,Queue, Process;
     </system>
 	<queries>
@@ -780,11 +801,31 @@ system Pod,Station,Queue, Process;
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply (Pod(j).clockPod - Pod(p).clockPod&lt;=MAX || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
+			<formula>A[] forall(s:stat_t ) forall(j:pod_t) forall(i:pod_t) ((Pod(i).current_pos==Pod(j).current_pos==STATION_POSITION[s] &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch==STATION_BRANCH[s]) imply i==j)</formula>
 			<comment></comment>
 		</query>
 		<query>
-			<formula>A[] forall(s:stat_t ) forall(j:pod_t) forall(i:pod_t) ((Pod(i).current_pos==Pod(j).current_pos==STATION_POSITION[s] &amp;&amp; Pod(i).curr_branch==Pod(j).curr_branch==STATION_BRANCH[s]) imply i==j)</formula>
+			<formula>E&lt;&gt; exists(p:pod_t)(Pod(p).current_pos==MAX_POSITION-1 &amp;&amp; Pod(p).clockPod&lt;=MINIMUM_TIME)</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] forall(p:pod_t)forall(j:pod_t)((Pod(p).current_pos == 0 &amp;&amp; pods_position_sorted[1]==Pod(j).current_pos) imply ((Pod(j).clockPod - Pod(p).clockPod)&lt;=200 || countHowManyCompleted&lt;=NUM_PODS-1))</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
 			<comment></comment>
 		</query>
 		<query>
