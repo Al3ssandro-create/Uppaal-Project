@@ -1,7 +1,8 @@
-#PLOT 1
-| | | | | |
-|-|-|-|-|-|
-|Speed|config|maxTime|result| |
+
+# PLOT 1
+
+|speedConveyorBelt|numberOfPod|ProcessingTime|assert0|assert1|
+|----------------:|-----------|--------------|-------|-------|
 |2|2|1|1|1|
 |2|3|1|1|0|
 |2|4|1|1|0 |
@@ -30,10 +31,11 @@
 |8|3|3|0|1 |
 |8|4|3|0|1 |
 
-#PLOT 2
-| | | | | |
-|-|-|-|-|-|
-|NumberOfPods|config|maxTime|result| |
+# PLOT 2
+
+
+|speedConveyorBelt|numberOfPod|ProcessingTime|assert0|assert1|
+|----------------:|-----------|--------------|-------|-------|
 |2|2|1|1|1|
 |2|3|1|1|1|
 |2|4|1|1|1|
@@ -62,10 +64,11 @@
 |8|3|3|1|1|
 |8|4|3|1|1|
 
-#PLOT 3
-| | | | | |
-|-|-|-|-|-|
-|Speed|config|maxTime|result| |
+# PLOT 3
+
+
+|speedConveyorBelt|numberOfPod|ProcessingTime|assert0|assert1|
+|----------------:|-----------|--------------|-------|-------|
 |2|2|1|1|1|
 |2|3|1|1|1|
 |2|4|1|1|1|
