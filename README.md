@@ -7,4 +7,4 @@ Formal Method for Concurrency and Real-Time System Homework class 2022-2023
 [Simone Mannarino](https://github.com/ironmanna) &
 [Vittorio La Ferla](https://github.com/vittoriolaferla)
 
-![Example Image](../Uppaal/my_plot.png)
+![Example Image](/Uppaal/my_plot.png)
